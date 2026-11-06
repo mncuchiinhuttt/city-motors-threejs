@@ -2,46 +2,42 @@ import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { ExtendedCameraMode, TimeOfDay } from "../types";
+import { SceneMode, SimpleCameraMode, TimeOfDay } from "../types";
 
 interface CityCanvasProps {
-  timeOfDay: TimeOfDay;
-  cameraPreset: ExtendedCameraMode;
-  activeCarId?: string;
-  onSelectCar?: (carId: string) => void;
-  customCarColor?: { carId: string; colorHex: string };
+  sceneMode?: SceneMode;
+  timeOfDay?: TimeOfDay;
+  cameraMode?: SimpleCameraMode;
   trafficSpeed?: number;
   isPaused?: boolean;
+  enableZoom?: boolean;
 }
 
 export const CityCanvas: React.FC<CityCanvasProps> = ({
+  sceneMode = "mountain",
   timeOfDay = "day",
-  cameraPreset = "chase",
-  activeCarId = "Car_BlueCoupe",
-  onSelectCar,
-  customCarColor,
+  cameraMode = "close",
   trafficSpeed = 1.0,
-  isPaused = false
+  isPaused = false,
+  enableZoom = false
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
-  const [loadProgress, setLoadProgress] = useState(0);
 
   const sceneRef = useRef<THREE.Scene | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
+  const currentModelRef = useRef<THREE.Object3D | null>(null);
 
-  const carsRef = useRef<{
-    id: string;
+  const heroCarRef = useRef<{
     object: THREE.Object3D;
     curve: THREE.CatmullRomCurve3;
     progress: number;
     speed: number;
     wheels: THREE.Object3D[];
     headlights: THREE.SpotLight[];
-    bodyMeshes: THREE.Mesh[];
-  }[]>([]);
+  } | null>(null);
 
   const lightsRef = useRef<{
     sun: THREE.DirectionalLight;
@@ -53,30 +49,60 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
 
   const windowMaterialsRef = useRef<THREE.MeshStandardMaterial[]>([]);
   const streetlampMaterialsRef = useRef<THREE.MeshStandardMaterial[]>([]);
-  const roadMaterialRef = useRef<THREE.MeshStandardMaterial | null>(null);
   const starsRef = useRef<THREE.Points | null>(null);
 
-  const propsRef = useRef({ timeOfDay, cameraPreset, activeCarId, trafficSpeed, isPaused });
+  const propsRef = useRef({ sceneMode, timeOfDay, cameraMode, trafficSpeed, isPaused });
   useEffect(() => {
-    propsRef.current = { timeOfDay, cameraPreset, activeCarId, trafficSpeed, isPaused };
-  }, [timeOfDay, cameraPreset, activeCarId, trafficSpeed, isPaused]);
+    propsRef.current = { sceneMode, timeOfDay, cameraMode, trafficSpeed, isPaused };
+  }, [sceneMode, timeOfDay, cameraMode, trafficSpeed, isPaused]);
 
+  // --- Splines for Mountain and City Circuits ---
+  // In Three.js coordinates: Y is UP, Z is depth!
+  // Mountain Pass Circuit: Climbs up from Y=0.35m to peak Y=5.15m and loops around peaks
+  const mtnPoints = [
+    new THREE.Vector3(  0.0, 0.35,  24.0),
+    new THREE.Vector3( 10.0, 0.75,  23.0),
+    new THREE.Vector3( 20.0, 1.55,  19.0),
+    new THREE.Vector3( 27.0, 2.45,  12.0),
+    new THREE.Vector3( 30.0, 3.45,   3.0), // Climbing mountain ridge
+    new THREE.Vector3( 29.0, 4.45,  -7.0),
+    new THREE.Vector3( 24.0, 5.15, -17.0), // Mountain Summit Overlook!
+    new THREE.Vector3( 15.0, 4.35, -24.0), // Switchback descent
+    new THREE.Vector3(  4.0, 3.35, -27.0),
+    new THREE.Vector3( -7.0, 2.35, -25.0),
+    new THREE.Vector3(-17.0, 1.35, -20.0),
+    new THREE.Vector3(-24.0, 0.65, -11.0),
+    new THREE.Vector3(-26.0, 0.35,   0.0),
+    new THREE.Vector3(-24.0, 0.35,  11.0),
+    new THREE.Vector3(-15.0, 0.35,  20.0),
+    new THREE.Vector3(  0.0, 0.35,  24.0)
+  ];
+  const mountainCurve = new THREE.CatmullRomCurve3(mtnPoints, true, "catmullrom", 0.15);
+
+  // City Loop Circuit
+  const cityPoints = [
+    new THREE.Vector3(  0.0, 0.20,  16.0),
+    new THREE.Vector3( 20.0, 0.20,  16.0),
+    new THREE.Vector3( 20.0, 0.20, -16.0),
+    new THREE.Vector3(-20.0, 0.20, -16.0),
+    new THREE.Vector3(-20.0, 0.20,  16.0),
+    new THREE.Vector3(  0.0, 0.20,  16.0)
+  ];
+  const cityCurve = new THREE.CatmullRomCurve3(cityPoints, true, "catmullrom", 0.15);
+
+  // Initialize Scene, Renderer, and Camera once
   useEffect(() => {
     if (!mountRef.current) return;
     const container = mountRef.current;
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    // --- Scene & Renderer ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xbfe0f7); // Crisp sunny sky blue
+    scene.background = new THREE.Color(0xbfe0f7);
     scene.fog = new THREE.Fog(0xd8ecfa, 45, 170);
     sceneRef.current = scene;
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      powerPreference: "high-performance"
-    });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
@@ -86,28 +112,25 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // --- Camera & Orbit Controls ---
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.4, 500);
-    camera.position.set(0, 12, 28);
+    camera.position.set(0, 8, 20);
     cameraRef.current = camera;
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.maxPolarAngle = Math.PI / 2 - 0.04; // Don't clip below ground
-    controls.minDistance = 3;
-    controls.maxDistance = 180;
-    controls.target.set(0, 1.0, 0);
+    controls.enableZoom = enableZoom; // FIX: Zoom disabled so mouse wheel scrolls page naturally!
+    controls.maxPolarAngle = Math.PI / 2 - 0.04;
     controlsRef.current = controls;
 
-    // --- Beautiful Sky: Celestial Sun & Starfield ---
+    // Celestial Sun Orb
     const sunGeo = new THREE.SphereGeometry(3.5, 16, 16);
     const sunMat = new THREE.MeshBasicMaterial({ color: 0xfff4aa });
     const sunMesh = new THREE.Mesh(sunGeo, sunMat);
     sunMesh.position.set(45, 65, 35);
     scene.add(sunMesh);
 
-    // Starfield for night mode
+    // Starfield for night
     const starCount = 600;
     const starGeo = new THREE.BufferGeometry();
     const starPos = new Float32Array(starCount * 3);
@@ -128,7 +151,7 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
     scene.add(stars);
     starsRef.current = stars;
 
-    // --- Crisp Warm Sunlight (60-30-10 palette lighting) ---
+    // Atmospheric Sunlight
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.1);
     scene.add(ambientLight);
 
@@ -159,60 +182,114 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
       streetlights: []
     };
 
-    // --- MATHEMATICALLY ACCURATE THREE.JS ROAD SPLINES ---
-    // In Three.js: X = East/West, Y = VERTICAL HEIGHT, Z = North/South (depth)!
-    // Road surface is at Y = 0.05. Mountain pass climbs from Y = 0.4 up to Y = 3.2!
-    
-    // Circuit 1: Scenic Mountain Pass & City Highway (Endless Loop!)
-    // Apex GT-90 (Car_BlueCoupe) drives on this panoramic mountain route!
-    const mountainHighwayPoints = [
-      new THREE.Vector3(0.0,  0.15,  16.0), // South highway cruising east
-      new THREE.Vector3(14.0, 0.15,  16.0),
-      new THREE.Vector3(20.0, 0.45,  14.0), // Mountain foot approach
-      new THREE.Vector3(23.5, 1.15,   9.0), // Climbing mountain curve 1
-      new THREE.Vector3(25.5, 1.95,   3.0), // Climbing mountain curve 2
-      new THREE.Vector3(26.5, 3.25,  -3.0), // HIGHEST MOUNTAIN PASS OVERLOOK!
-      new THREE.Vector3(24.0, 2.75,  -9.0), // Mountain switchback descent
-      new THREE.Vector3(21.0, 1.45, -14.0),
-      new THREE.Vector3(15.0, 0.45, -16.0), // Re-entering North Boulevard
-      new THREE.Vector3(0.0,  0.15, -16.0),
-      new THREE.Vector3(-18.0, 0.15, -16.0),
-      new THREE.Vector3(-20.0, 0.15,  -8.0), // West Avenue
-      new THREE.Vector3(-20.0, 0.15,   8.0),
-      new THREE.Vector3(-18.0, 0.15,  16.0), // Turn into South highway
-      new THREE.Vector3(0.0,  0.15,  16.0)  // Seamless Infinite Loop!
-    ];
-    const mountainHighwayCurve = new THREE.CatmullRomCurve3(mountainHighwayPoints, true, "catmullrom", 0.15);
+    // --- Animation & Chase Loop ---
+    let animationFrameId: number;
+    let lastTime = performance.now();
 
-    // Circuit 2: Downtown Avenue Loop (Sedan & Taxi)
-    const downtownAvenuePoints = [
-      new THREE.Vector3(-1.8, 0.15,  16.0),
-      new THREE.Vector3(-1.8, 0.15,   0.0),
-      new THREE.Vector3(-1.8, 0.15, -16.0),
-      new THREE.Vector3( 1.8, 0.15, -16.0),
-      new THREE.Vector3( 1.8, 0.15,   0.0),
-      new THREE.Vector3( 1.8, 0.15,  16.0)
-    ];
-    const downtownAvenueCurve = new THREE.CatmullRomCurve3(downtownAvenuePoints, true, "catmullrom", 0.2);
+    const animate = (currentTime: number) => {
+      animationFrameId = requestAnimationFrame(animate);
 
-    // Circuit 3: Outer Ring Road
-    const outerRingPoints = [
-      new THREE.Vector3( 16.0, 0.15,  16.0),
-      new THREE.Vector3( 16.0, 0.15, -16.0),
-      new THREE.Vector3(-16.0, 0.15, -16.0),
-      new THREE.Vector3(-16.0, 0.15,  16.0)
-    ];
-    const outerRingCurve = new THREE.CatmullRomCurve3(outerRingPoints, true, "catmullrom", 0.15);
+      const delta = Math.min((currentTime - lastTime) / 1000, 0.1);
+      lastTime = currentTime;
 
-    // --- Load City GLB Asset ---
+      const { cameraMode: curCam, trafficSpeed: curSpeed, isPaused: curPaused } = propsRef.current;
+
+      const heroCar = heroCarRef.current;
+      if (heroCar && !curPaused) {
+        // Endless driving loop along curve
+        heroCar.progress = (heroCar.progress + heroCar.speed * curSpeed * delta * 60) % 1.0;
+
+        const pt = heroCar.curve.getPointAt(heroCar.progress);
+        const tangent = heroCar.curve.getTangentAt(heroCar.progress).normalize();
+
+        // Position car firmly on the road
+        heroCar.object.position.copy(pt);
+
+        // Smooth heading orientation along tangent
+        const lookTarget = pt.clone().add(tangent);
+        heroCar.object.lookAt(lookTarget);
+
+        // Rotate wheels
+        heroCar.wheels.forEach((w) => {
+          w.rotation.x += delta * 20 * curSpeed;
+        });
+
+        // CAMERA PERSPECTIVE:
+        if (curCam === "close") {
+          // GÓC GẦN (CHASE CAM): Locked 7.5m behind car, 2.8m above road, looking 4.5m ahead
+          const behind = tangent.clone().multiplyScalar(-7.5);
+          const desiredCamPos = pt.clone().add(behind).add(new THREE.Vector3(0, 2.8, 0));
+          camera.position.lerp(desiredCamPos, 0.12);
+
+          const forwardLook = pt.clone().add(tangent.clone().multiplyScalar(4.5)).add(new THREE.Vector3(0, 0.9, 0));
+          controls.target.lerp(forwardLook, 0.15);
+        } else if (curCam === "wide") {
+          // GÓC RỘNG (PANORAMIC OVERVIEW): High vantage point showing the whole mountain pass or city
+          const wideCamPos = heroCar.curve === mountainCurve
+            ? new THREE.Vector3(15, 35, 45)
+            : new THREE.Vector3(0, 36, 42);
+          camera.position.lerp(wideCamPos, 0.05);
+          controls.target.lerp(new THREE.Vector3(0, 2.0, 0), 0.08);
+        }
+      }
+
+      controls.update();
+      renderer.render(scene, camera);
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+
+    const handleResize = () => {
+      if (!container) return;
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      cancelAnimationFrame(animationFrameId);
+      controls.dispose();
+      renderer.dispose();
+      if (container.contains(renderer.domElement)) {
+        container.removeChild(renderer.domElement);
+      }
+    };
+  }, [enableZoom]);
+
+  // --- Load Model based on active sceneMode (mountain or city) ---
+  useEffect(() => {
+    const scene = sceneRef.current;
+    const camera = cameraRef.current;
+    const controls = controlsRef.current;
+    if (!scene || !camera || !controls) return;
+
+    setLoading(true);
+
+    // Remove old model if present
+    if (currentModelRef.current) {
+      scene.remove(currentModelRef.current);
+      currentModelRef.current = null;
+    }
+
+    const glbUrl = sceneMode === "mountain" ? "/assets/mountain.glb" : "/assets/city.glb";
+    const activeCurve = sceneMode === "mountain" ? mountainCurve : cityCurve;
+
     const loader = new GLTFLoader();
     loader.load(
-      "/assets/city.glb",
+      glbUrl,
       (gltf) => {
         const model = gltf.scene;
         scene.add(model);
+        currentModelRef.current = model;
 
-        const foundCars: { [key: string]: THREE.Object3D } = {};
+        windowMaterialsRef.current = [];
+        streetlampMaterialsRef.current = [];
+
+        let heroCarObj: THREE.Object3D | null = null;
 
         model.traverse((child) => {
           if (child instanceof THREE.Mesh) {
@@ -231,268 +308,79 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
                   streetlampMaterialsRef.current.push(mat);
                 }
               }
-              if (mat.name.includes("Road") && !mat.name.includes("Marking")) {
-                roadMaterialRef.current = mat;
-              }
             }
           }
 
-          if (
-            child.name === "Car_Taxi" ||
-            child.name === "Car_RedSedan" ||
-            child.name === "Car_BlueCoupe" ||
-            child.name === "Car_WhiteVan"
-          ) {
-            foundCars[child.name] = child;
+          if (child.name === "Car_BlueCoupe") {
+            heroCarObj = child;
           }
         });
 
-        // Car Configurations:
-        // Car_BlueCoupe: Hero Orange Sports Car driving on the Mountain Pass!
-        const carConfigs = [
-          { name: "Car_BlueCoupe", curve: mountainHighwayCurve, progress: 0.05, speed: 0.00038 },
-          { name: "Car_RedSedan",  curve: outerRingCurve,       progress: 0.35, speed: 0.00032 },
-          { name: "Car_Taxi",      curve: downtownAvenueCurve,  progress: 0.65, speed: 0.00035 },
-          { name: "Car_WhiteVan",  curve: mountainHighwayCurve, progress: 0.55, speed: 0.00028 }
-        ];
-
-        carsRef.current = [];
-
-        carConfigs.forEach((cfg) => {
-          const carObj = foundCars[cfg.name];
-          if (!carObj) return;
-
+        if (heroCarObj) {
           const wheels: THREE.Object3D[] = [];
-          const bodyMeshes: THREE.Mesh[] = [];
-
-          carObj.traverse((part) => {
-            if (part.name.includes("Wheel")) wheels.push(part);
-            if (part instanceof THREE.Mesh && (part.name.includes("LowerBody") || part.name.includes("RoofCap"))) {
-              part.material = part.material.clone();
-              bodyMeshes.push(part);
-            }
+          heroCarObj.traverse((p) => {
+            if (p.name.includes("Wheel")) wheels.push(p);
           });
 
-          // Headlights Spotlight
+          // Headlights
           const spotLeft = new THREE.SpotLight(0xfffae0, 6.0, 24, Math.PI / 5, 0.4, 1.2);
           spotLeft.position.set(-0.6, 0.6, 2.0);
           const targetLeft = new THREE.Object3D();
           targetLeft.position.set(-0.6, 0.0, 16.0);
-          carObj.add(targetLeft);
+          heroCarObj.add(targetLeft);
           spotLeft.target = targetLeft;
-          carObj.add(spotLeft);
+          heroCarObj.add(spotLeft);
 
           const spotRight = new THREE.SpotLight(0xfffae0, 6.0, 24, Math.PI / 5, 0.4, 1.2);
           spotRight.position.set(0.6, 0.6, 2.0);
           const targetRight = new THREE.Object3D();
           targetRight.position.set(0.6, 0.0, 16.0);
-          carObj.add(targetRight);
+          heroCarObj.add(targetRight);
           spotRight.target = targetRight;
-          carObj.add(spotRight);
+          heroCarObj.add(spotRight);
 
-          carsRef.current.push({
-            id: cfg.name,
-            object: carObj,
-            curve: cfg.curve,
-            progress: cfg.progress,
-            speed: cfg.speed,
+          heroCarRef.current = {
+            object: heroCarObj,
+            curve: activeCurve,
+            progress: 0.05,
+            speed: sceneMode === "mountain" ? 0.00032 : 0.00038,
             wheels,
-            headlights: [spotLeft, spotRight],
-            bodyMeshes
-          });
-        });
+            headlights: [spotLeft, spotRight]
+          };
 
-        // Initialize Hero Car & Chase Camera immediately on load!
-        if (carsRef.current.length > 0) {
-          const hero = carsRef.current[0];
-          const pt = hero.curve.getPointAt(hero.progress);
-          const tangent = hero.curve.getTangentAt(hero.progress).normalize();
-          hero.object.position.copy(pt);
-          hero.object.lookAt(pt.clone().add(tangent));
+          // SNAP CAMERA IMMEDIATELY ON LOAD TO CLOSE CHASE VIEW!
+          const initPt = activeCurve.getPointAt(0.05);
+          const initTangent = activeCurve.getTangentAt(0.05).normalize();
+          heroCarObj.position.copy(initPt);
+          heroCarObj.lookAt(initPt.clone().add(initTangent));
 
-          const initCam = pt.clone().add(tangent.clone().multiplyScalar(-7.5)).add(new THREE.Vector3(0, 3.2, 0));
-          const initTarget = pt.clone().add(tangent.clone().multiplyScalar(4.5)).add(new THREE.Vector3(0, 1.0, 0));
+          const initCam = initPt.clone().add(initTangent.clone().multiplyScalar(-7.5)).add(new THREE.Vector3(0, 2.8, 0));
+          const initTarget = initPt.clone().add(initTangent.clone().multiplyScalar(4.5)).add(new THREE.Vector3(0, 0.9, 0));
+
           camera.position.copy(initCam);
           controls.target.copy(initTarget);
         }
-        // Streetlights
-        const lampPositions = [
-          [-4.2, 3.2, -4.2], [4.2, 3.2, -4.2], [-4.2, 3.2, 4.2], [4.2, 3.2, 4.2],
-          [-4.2, 3.2, -18.5], [4.2, 3.2, -18.5], [-4.2, 3.2, 18.5], [4.2, 3.2, 18.5]
-        ];
-        lampPositions.forEach(([lx, ly, lz]) => {
-          const pLight = new THREE.PointLight(0xffeedd, 2.0, 14, 1.8);
-          pLight.position.set(lx, ly, lz);
-          scene.add(pLight);
-          lightsRef.current?.streetlights.push(pLight);
-        });
 
         setLoading(false);
       },
-      (xhr) => {
-        if (xhr.total > 0) setLoadProgress(Math.round((xhr.loaded / xhr.total) * 100));
-      },
-      (error) => {
-        console.error("Error loading city GLB:", error);
+      undefined,
+      (err) => {
+        console.error("Error loading scene GLB:", err);
         setLoading(false);
       }
     );
+  }, [sceneMode]);
 
-    // --- Raycaster for Clicking Cars ---
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-
-    const handlePointerDown = (event: MouseEvent) => {
-      const rect = renderer.domElement.getBoundingClientRect();
-      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-      raycaster.setFromCamera(mouse, camera);
-      const carRoots = carsRef.current.map((c) => c.object);
-      const intersects = raycaster.intersectObjects(carRoots, true);
-
-      if (intersects.length > 0) {
-        let cur: THREE.Object3D | null = intersects[0].object;
-        while (cur && cur.parent && !carsRef.current.some((c) => c.object === cur)) {
-          cur = cur.parent;
-        }
-        if (cur && onSelectCar) {
-          const matched = carsRef.current.find((c) => c.object === cur);
-          if (matched) onSelectCar(matched.id);
-        }
-      }
-    };
-    renderer.domElement.addEventListener("pointerdown", handlePointerDown);
-
-    // --- ANIMATION & FLAWLESS CHASE CAMERA RENDER LOOP ---
-    let animationFrameId: number;
-    let lastTime = performance.now();
-
-    const animate = (currentTime: number) => {
-      animationFrameId = requestAnimationFrame(animate);
-
-      const delta = Math.min((currentTime - lastTime) / 1000, 0.1);
-      lastTime = currentTime;
-
-      const {
-        cameraPreset: curCamPreset,
-        activeCarId: curActiveId,
-        trafficSpeed: curSpeed,
-        isPaused: curPaused
-      } = propsRef.current;
-
-      // Animate Cars along their road splines
-      if (!curPaused) {
-        carsRef.current.forEach((car) => {
-          car.progress = (car.progress + car.speed * curSpeed * delta * 60) % 1.0;
-
-          // In Three.js coordinates: Y is vertical UP!
-          const pt = car.curve.getPointAt(car.progress);
-          const tangent = car.curve.getTangentAt(car.progress).normalize();
-
-          // Set car position directly on the road
-          car.object.position.copy(pt);
-
-          // Smooth forward heading along road tangent
-          const lookTarget = pt.clone().add(tangent);
-          car.object.lookAt(lookTarget);
-
-          // Rotate wheels
-          car.wheels.forEach((w) => {
-            w.rotation.x += delta * 20 * curSpeed;
-          });
-        });
-      }
-
-      // ACTIVE HERO CAR CHASE CAMERA
-      const heroCar = carsRef.current.find((c) => c.id === curActiveId) || carsRef.current[0];
-
-      if (heroCar && curCamPreset === "chase") {
-        // CHASE CAM: Positioned 8 meters behind the car along the road tangent, elevated 3.2m above road!
-        const carPos = heroCar.object.position;
-        const tangent = heroCar.curve.getTangentAt(heroCar.progress).normalize();
-
-        // 8m behind along tangent + 3.2m above
-        const behindOffset = tangent.clone().multiplyScalar(-8.0);
-        const desiredCamPos = carPos.clone().add(behindOffset).add(new THREE.Vector3(0, 3.2, 0));
-
-        camera.position.lerp(desiredCamPos, 0.08);
-
-        // Look 4.5m ahead of the car for natural driving view
-        const forwardLook = carPos.clone().add(tangent.clone().multiplyScalar(4.5)).add(new THREE.Vector3(0, 1.0, 0));
-        controls.target.lerp(forwardLook, 0.1);
-      } else if (heroCar && curCamPreset === "hood") {
-        // HOOD CAM: Mounted on the car hood looking forward
-        const carPos = heroCar.object.position;
-        const tangent = heroCar.curve.getTangentAt(heroCar.progress).normalize();
-
-        const hoodPos = carPos.clone().add(tangent.clone().multiplyScalar(0.8)).add(new THREE.Vector3(0, 1.1, 0));
-        camera.position.lerp(hoodPos, 0.15);
-
-        const hoodLook = carPos.clone().add(tangent.clone().multiplyScalar(16.0)).add(new THREE.Vector3(0, 0.8, 0));
-        controls.target.lerp(hoodLook, 0.2);
-      } else if (heroCar && curCamPreset === "drone") {
-        // SIDE DRONE CAM: 8m side offset
-        const carPos = heroCar.object.position;
-        const dronePos = carPos.clone().add(new THREE.Vector3(-9.0, 6.5, 8.0));
-        camera.position.lerp(dronePos, 0.06);
-        controls.target.lerp(carPos, 0.08);
-      } else if (curCamPreset === "mountain") {
-        // MOUNTAIN OVERLOOK VIEW: High scenic vantage point
-        const overlookPos = new THREE.Vector3(26.0, 8.0, 10.0);
-        const mtnTarget = new THREE.Vector3(25.0, 2.5, 0.0);
-        camera.position.lerp(overlookPos, 0.05);
-        controls.target.lerp(mtnTarget, 0.05);
-      } else if (curCamPreset === "street") {
-        // STREET LEVEL VIEW: Low intersection cam
-        const streetPos = new THREE.Vector3(0, 1.8, 8.0);
-        const streetTarget = new THREE.Vector3(0, 4.0, -14.0);
-        camera.position.lerp(streetPos, 0.04);
-        controls.target.lerp(streetTarget, 0.04);
-      } else if (curCamPreset === "topdown") {
-        // TOPDOWN BIRD'S EYE VIEW
-        camera.position.lerp(new THREE.Vector3(5, 55, 0.1), 0.04);
-        controls.target.lerp(new THREE.Vector3(5, 0, 0), 0.04);
-      }
-
-      controls.update();
-      renderer.render(scene, camera);
-    };
-
-    animationFrameId = requestAnimationFrame(animate);
-
-    // --- Resize ---
-    const handleResize = () => {
-      if (!container) return;
-      const w = container.clientWidth;
-      const h = container.clientHeight;
-      camera.aspect = w / h;
-      camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
-    };
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      renderer.domElement.removeEventListener("pointerdown", handlePointerDown);
-      cancelAnimationFrame(animationFrameId);
-      controls.dispose();
-      renderer.dispose();
-      if (container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement);
-      }
-    };
-  }, []);
-
-  // --- Dynamic Lighting & Atmosphere ---
+  // --- Dynamic Lighting & Atmosphere based on timeOfDay ---
   useEffect(() => {
     const scene = sceneRef.current;
     const lights = lightsRef.current;
+    const heroCar = heroCarRef.current;
     if (!scene || !lights) return;
 
     if (timeOfDay === "day") {
-      scene.background = new THREE.Color(0xb5daf5); // Sunny clear azure sky
-      scene.fog = new THREE.Fog(0xd4e9fa, 45, 160);
+      scene.background = new THREE.Color(0xb5daf5);
+      scene.fog = new THREE.Fog(0xd4e9fa, 45, 170);
 
       lights.sun.intensity = 2.8;
       lights.sun.color.setHex(0xfffaec);
@@ -505,16 +393,14 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
       (lights.sunMesh.material as THREE.MeshBasicMaterial).color.setHex(0xfff0aa);
 
       lights.streetlights.forEach((l) => (l.intensity = 0));
-      carsRef.current.forEach((c) => c.headlights.forEach((h) => (h.intensity = 0)));
+      if (heroCar) heroCar.headlights.forEach((h) => (h.intensity = 0));
 
       windowMaterialsRef.current.forEach((m) => (m.emissiveIntensity = 0.0));
       streetlampMaterialsRef.current.forEach((m) => (m.emissiveIntensity = 0.0));
-
-      if (roadMaterialRef.current) roadMaterialRef.current.roughness = 0.85;
       if (starsRef.current) starsRef.current.visible = false;
     } else if (timeOfDay === "sunset") {
-      scene.background = new THREE.Color(0xf57c38); // Warm sunset amber/orange
-      scene.fog = new THREE.Fog(0xc95232, 35, 125);
+      scene.background = new THREE.Color(0xf57c38);
+      scene.fog = new THREE.Fog(0xc95232, 35, 130);
 
       lights.sun.intensity = 2.2;
       lights.sun.color.setHex(0xff6015);
@@ -530,21 +416,17 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
         l.intensity = 1.2;
         l.color.setHex(0xffd59e);
       });
-      carsRef.current.forEach((c) =>
-        c.headlights.forEach((h) => {
-          h.intensity = 3.5;
-          h.color.setHex(0xfff0cc);
-        })
-      );
+      if (heroCar) heroCar.headlights.forEach((h) => {
+        h.intensity = 3.5;
+        h.color.setHex(0xfff0cc);
+      });
 
       windowMaterialsRef.current.forEach((m) => (m.emissiveIntensity = 1.2));
       streetlampMaterialsRef.current.forEach((m) => (m.emissiveIntensity = 2.5));
-
-      if (roadMaterialRef.current) roadMaterialRef.current.roughness = 0.75;
       if (starsRef.current) starsRef.current.visible = true;
     } else if (timeOfDay === "night") {
-      scene.background = new THREE.Color(0x0f172a); // Deep solid slate night
-      scene.fog = new THREE.Fog(0x0f172a, 30, 115);
+      scene.background = new THREE.Color(0x0f172a);
+      scene.fog = new THREE.Fog(0x0f172a, 30, 120);
 
       lights.sun.intensity = 0.0;
       lights.ambient.intensity = 0.45;
@@ -560,21 +442,17 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
         l.intensity = 2.5;
         l.color.setHex(0xffeaad);
       });
-      carsRef.current.forEach((c) =>
-        c.headlights.forEach((h) => {
-          h.intensity = 6.0;
-          h.color.setHex(0xfffde8);
-        })
-      );
+      if (heroCar) heroCar.headlights.forEach((h) => {
+        h.intensity = 6.0;
+        h.color.setHex(0xfffde8);
+      });
 
       windowMaterialsRef.current.forEach((m) => (m.emissiveIntensity = 2.5));
       streetlampMaterialsRef.current.forEach((m) => (m.emissiveIntensity = 4.5));
-
-      if (roadMaterialRef.current) roadMaterialRef.current.roughness = 0.8;
       if (starsRef.current) starsRef.current.visible = true;
     } else if (timeOfDay === "cyberpunk") {
       scene.background = new THREE.Color(0x1e1b4b);
-      scene.fog = new THREE.Fog(0x311042, 25, 95);
+      scene.fog = new THREE.Fog(0x311042, 25, 100);
 
       lights.sun.intensity = 0.0;
       lights.ambient.intensity = 0.5;
@@ -588,31 +466,16 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
         l.intensity = 3.5;
         l.color.setHex(idx % 2 === 0 ? 0x06b6d4 : 0xf97316);
       });
-      carsRef.current.forEach((c) =>
-        c.headlights.forEach((h) => {
-          h.intensity = 7.5;
-          h.color.setHex(0xe0f2fe);
-        })
-      );
+      if (heroCar) heroCar.headlights.forEach((h) => {
+        h.intensity = 7.5;
+        h.color.setHex(0xe0f2fe);
+      });
 
       windowMaterialsRef.current.forEach((m) => (m.emissiveIntensity = 3.5));
       streetlampMaterialsRef.current.forEach((m) => (m.emissiveIntensity = 5.0));
-
-      if (roadMaterialRef.current) roadMaterialRef.current.roughness = 0.15;
       if (starsRef.current) starsRef.current.visible = true;
     }
   }, [timeOfDay]);
-
-  // Realtime Car Color Customizer
-  useEffect(() => {
-    if (!customCarColor) return;
-    const car = carsRef.current.find((c) => c.id === customCarColor.carId);
-    if (!car) return;
-    car.bodyMeshes.forEach((mesh) => {
-      const mat = mesh.material as THREE.MeshStandardMaterial;
-      if (mat) mat.color.set(customCarColor.colorHex);
-    });
-  }, [customCarColor]);
 
   return (
     <div className="relative w-full h-full select-none overflow-hidden bg-slate-100">
@@ -621,14 +484,13 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
       {loading && (
         <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/95 backdrop-blur-md text-slate-800">
           <div className="relative flex items-center justify-center mb-5">
-            <div className="w-14 h-14 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
-            <span className="absolute text-xs font-mono text-orange-600 font-bold">{loadProgress}%</span>
+            <div className="w-12 h-12 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
           </div>
-          <h3 className="text-lg font-bold font-display tracking-wider text-slate-900">
-            Đang tải Đô Thị & Cung Đường Núi...
+          <h3 className="text-base font-bold font-display tracking-wider text-slate-900">
+            {sceneMode === "mountain" ? "Đang tải Cung Đường Đèo Núi 3D..." : "Đang tải Thành Phố Đô Thị 3D..."}
           </h3>
-          <p className="text-xs text-slate-500 mt-1 font-light">
-            Blender 5.2 • Xe chạy vô tận • Camera bám đuôi thời gian thực
+          <p className="text-xs text-slate-500 mt-1 font-normal">
+            Xe chạy vô tận • Camera bám đuôi trực tiếp
           </p>
         </div>
       )}

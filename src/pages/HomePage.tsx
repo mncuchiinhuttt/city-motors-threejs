@@ -4,32 +4,31 @@ import { CityCanvas } from "../components/CityCanvas";
 import { CornerSceneController } from "../components/CornerSceneController";
 import { CarCard } from "../components/CarCard";
 import { CARS_DATA } from "../data/cars";
-import { ExtendedCameraMode, TimeOfDay } from "../types";
+import { SceneMode, SimpleCameraMode, TimeOfDay } from "../types";
 import {
   ArrowRight,
   Compass,
   Zap,
   Sparkles,
   ChevronDown,
-  Gauge,
-  Cpu,
-  Layers,
   BatteryCharging,
   Eye,
   Radio,
+  Layers,
   CheckCircle2,
   Quote,
   Video,
-  Mountain
+  Globe,
+  Mountain,
+  Building2
 } from "lucide-react";
 
 export const HomePage: React.FC = () => {
-  const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>("day"); // Default: Crisp sunny daylight!
-  const [cameraPreset, setCameraPreset] = useState<ExtendedCameraMode>("chase");
-  const [activeCarId, setActiveCarId] = useState<string>("Car_BlueCoupe"); // Hero Orange Car
+  const [sceneMode, setSceneMode] = useState<SceneMode>("mountain"); // Default: Mountain Pass as requested!
+  const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>("day");
+  const [cameraMode, setCameraMode] = useState<SimpleCameraMode>("close"); // Exactly 2 modes: close vs wide!
   const [trafficSpeed, setTrafficSpeed] = useState<number>(1.0);
   const [isPaused, setIsPaused] = useState<boolean>(false);
-  const [customColor, setCustomColor] = useState<{ carId: string; colorHex: string } | undefined>(undefined);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   const filteredCars = CARS_DATA.filter(
@@ -39,78 +38,92 @@ export const HomePage: React.FC = () => {
   return (
     <div className="pt-16 min-h-screen bg-white text-slate-800">
       {/* =========================================================================
-          HERO SECTION: 3D CITY & MOUNTAIN (60/30/10 RULE, VIBRANT ORANGE CAR HERO)
+          HERO SECTION: 3D VIEWPORT WITH ZERO SCROLL INTERFERENCE
           ========================================================================= */}
-      <section className="relative w-full h-[88vh] min-h-[620px] bg-slate-100 overflow-hidden">
-        {/* Three.js Canvas Container */}
+      <section className="relative w-full h-[85vh] min-h-[580px] bg-slate-100">
+        {/* Three.js Canvas: enableZoom = false prevents scroll trapping! */}
         <div className="absolute inset-0 z-0">
           <CityCanvas
+            sceneMode={sceneMode}
             timeOfDay={timeOfDay}
-            cameraPreset={cameraPreset}
-            activeCarId={activeCarId}
-            onSelectCar={(id) => {
-              setActiveCarId(id);
-              setCameraPreset("chase");
-            }}
+            cameraMode={cameraMode}
             trafficSpeed={trafficSpeed}
             isPaused={isPaused}
-            customCarColor={customColor}
+            enableZoom={false}
           />
         </div>
 
-        {/* Crisp Vignette Overlay */}
-        <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-white via-transparent to-transparent z-10" />
+        {/* Crisp Bottom Vignette into Page Content */}
+        <div className="absolute inset-x-0 bottom-0 h-24 pointer-events-none bg-gradient-to-t from-white to-transparent z-10" />
 
         {/* Hero Overlay Content */}
-        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-between py-10 pointer-events-none">
-          <div className="max-w-xl pt-6 space-y-4">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/95 border border-slate-200 text-orange-600 text-xs font-mono font-bold pointer-events-auto shadow-md">
+        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-between py-8 pointer-events-none">
+          <div className="max-w-xl pt-4 space-y-3.5">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/95 border border-slate-200 text-orange-600 text-xs font-mono font-bold pointer-events-auto shadow-sm">
               <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping" />
-              <span>BLENDER 5.2 • CHASE CAM • XE CHẠY VÔ TẬN</span>
+              <span>BLENDER 5.2 • 2 PHÂN CẢNH 3D RIÊNG BIỆT</span>
             </div>
 
             <h1 className="text-4xl sm:text-6xl font-black font-display tracking-tight text-slate-900 leading-none">
-              ĐÔ THỊ & <br />
-              <span className="text-orange-500">CUNG ĐƯỜNG NÚI.</span>
+              {sceneMode === "mountain" ? (
+                <>
+                  CUNG ĐƯỜNG <br />
+                  <span className="text-orange-500">ĐÈO NÚI TOUGE.</span>
+                </>
+              ) : (
+                <>
+                  ĐẠI LỘ <br />
+                  <span className="text-orange-500">ĐÔ THỊ HIỆN ĐẠI.</span>
+                </>
+              )}
             </h1>
 
-            <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-normal max-w-lg bg-white/80 p-3 rounded-2xl border border-slate-200/60 backdrop-blur-md">
-              Xe thể thao cam lướt đi tuần hoàn từ trung tâm các tòa nhà chọc trời lên cung đường đèo núi. Camera bám đuôi trực tiếp theo từng khúc cua với tốc độ tùy chỉnh.
+            <p className="text-xs sm:text-sm text-slate-700 leading-relaxed font-normal max-w-lg bg-white/85 p-3 rounded-2xl border border-slate-200/70 shadow-sm backdrop-blur-md">
+              {sceneMode === "mountain"
+                ? "Chiếc xe thể thao cam lướt đi vòng quanh cung đường đèo núi dốc thoai thoải, qua rào chắn và đài vọng cảnh. Camera bám sát sau đuôi xe mượt mà."
+                : "Chiếc xe thể thao cam lăn bánh tuần hoàn qua ngã tư trung tâm giữa các tòa nhà chọc trời và hàng đèn đường lung linh."}
             </p>
 
-            <div className="flex flex-wrap items-center gap-3 pt-2 pointer-events-auto">
-              <Link
-                to="/city-experience"
-                className="flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-xs bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-500/25 transition-all hover:scale-105"
-              >
-                <Compass className="w-4 h-4" />
-                <span>Trải nghiệm toàn màn hình</span>
-              </Link>
+            {/* Quick Scene & Camera Toggle Buttons */}
+            <div className="flex flex-wrap items-center gap-2.5 pt-1 pointer-events-auto">
               <button
-                onClick={() => setCameraPreset(cameraPreset === "chase" ? "mountain" : "chase")}
-                className="flex items-center gap-2 px-5 py-3.5 rounded-2xl font-bold text-xs bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 shadow-sm transition-all"
+                onClick={() => setSceneMode(sceneMode === "mountain" ? "city" : "mountain")}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-500/20 transition-all hover:scale-105"
               >
-                {cameraPreset === "chase" ? <Mountain className="w-4 h-4 text-orange-500" /> : <Video className="w-4 h-4 text-orange-500" />}
-                <span>{cameraPreset === "chase" ? "Đổi góc đèo núi" : "Camera theo đuôi xe"}</span>
+                {sceneMode === "mountain" ? <Building2 className="w-4 h-4" /> : <Mountain className="w-4 h-4" />}
+                <span>{sceneMode === "mountain" ? "Đổi sang Thành Phố" : "Đổi sang Đèo Núi"}</span>
+              </button>
+
+              <button
+                onClick={() => setCameraMode(cameraMode === "close" ? "wide" : "close")}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 shadow-sm transition-all"
+              >
+                {cameraMode === "close" ? <Globe className="w-4 h-4 text-orange-500" /> : <Video className="w-4 h-4 text-orange-500" />}
+                <span>{cameraMode === "close" ? "Góc Rộng (Toàn cảnh)" : "Góc Gần (Theo xe)"}</span>
               </button>
             </div>
           </div>
-        </div>
 
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none flex flex-col items-center gap-1 opacity-80">
-          <span className="text-[10px] font-mono tracking-widest uppercase text-slate-500 font-bold">CUỘN XUỐNG</span>
-          <ChevronDown className="w-4 h-4 text-orange-500 animate-bounce" />
+          {/* Scroll Down Hint Link (Clicking scrolls directly to Bento section!) */}
+          <div className="self-center pointer-events-auto pb-1">
+            <a
+              href="#bento-innovation"
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/90 border border-slate-200 text-slate-600 text-[11px] font-mono font-bold hover:text-orange-600 shadow-sm transition-colors"
+            >
+              <span>CUỘN XUỐNG XEM CHI TIẾT</span>
+              <ChevronDown className="w-3.5 h-3.5 text-orange-500 animate-bounce" />
+            </a>
+          </div>
         </div>
 
         {/* Floating Corner Controller ("Khúc ở góc để đổi") */}
         <CornerSceneController
+          sceneMode={sceneMode}
+          onSceneChange={setSceneMode}
           timeOfDay={timeOfDay}
           onTimeChange={setTimeOfDay}
-          cameraPreset={cameraPreset}
-          onCameraChange={setCameraPreset}
-          activeCarId={activeCarId}
-          onCarChange={setActiveCarId}
+          cameraMode={cameraMode}
+          onCameraChange={setCameraMode}
           trafficSpeed={trafficSpeed}
           onSpeedChange={setTrafficSpeed}
           isPaused={isPaused}
@@ -375,11 +388,7 @@ export const HomePage: React.FC = () => {
         {/* Cars Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {filteredCars.map((car) => (
-            <CarCard
-              key={car.id}
-              car={car}
-              onCustomizeColor={(carId, colorHex) => setCustomColor({ carId, colorHex })}
-            />
+            <CarCard key={car.id} car={car} />
           ))}
         </div>
       </section>

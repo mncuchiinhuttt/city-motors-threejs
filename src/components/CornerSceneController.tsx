@@ -5,27 +5,24 @@ import {
   Moon,
   Zap,
   Video,
-  Eye,
-  Compass,
+  Globe,
   Play,
   Pause,
   Mountain,
   Building2,
   ChevronDown,
   ChevronUp,
-  Camera,
-  Car,
   Sparkles
 } from "lucide-react";
-import { ExtendedCameraMode, TimeOfDay } from "../types";
+import { SceneMode, SimpleCameraMode, TimeOfDay } from "../types";
 
 interface CornerSceneControllerProps {
+  sceneMode: SceneMode;
+  onSceneChange: (scene: SceneMode) => void;
   timeOfDay: TimeOfDay;
   onTimeChange: (time: TimeOfDay) => void;
-  cameraPreset: ExtendedCameraMode;
-  onCameraChange: (preset: ExtendedCameraMode) => void;
-  activeCarId: string;
-  onCarChange: (carId: string) => void;
+  cameraMode: SimpleCameraMode;
+  onCameraChange: (camera: SimpleCameraMode) => void;
   trafficSpeed: number;
   onSpeedChange: (speed: number) => void;
   isPaused: boolean;
@@ -33,41 +30,24 @@ interface CornerSceneControllerProps {
 }
 
 export const CornerSceneController: React.FC<CornerSceneControllerProps> = ({
+  sceneMode,
+  onSceneChange,
   timeOfDay,
   onTimeChange,
-  cameraPreset,
+  cameraMode,
   onCameraChange,
-  activeCarId,
-  onCarChange,
   trafficSpeed,
   onSpeedChange,
   isPaused,
   onTogglePause
 }) => {
   const [collapsed, setCollapsed] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<"time" | "camera" | "car">("time");
 
   const timeOptions: { id: TimeOfDay; label: string; icon: React.ReactNode }[] = [
-    { id: "day", label: "Ban ngày", icon: <Sun className="w-4 h-4 text-amber-500" /> },
-    { id: "sunset", label: "Hoàng hôn", icon: <Sunset className="w-4 h-4 text-orange-500" /> },
-    { id: "night", label: "Ban đêm", icon: <Moon className="w-4 h-4 text-indigo-500" /> },
-    { id: "cyberpunk", label: "Cyberpunk", icon: <Zap className="w-4 h-4 text-cyan-500" /> }
-  ];
-
-  const cameraOptions: { id: ExtendedCameraMode; label: string; icon: React.ReactNode; desc: string }[] = [
-    { id: "chase", label: "Theo đuôi xe", icon: <Video className="w-4 h-4 text-orange-600" />, desc: "Camera bám đuổi xe đua" },
-    { id: "hood", label: "Nắp ca-pô", icon: <Eye className="w-4 h-4 text-slate-700" />, desc: "Góc nhìn người lái" },
-    { id: "drone", label: "Flycam hông", icon: <Camera className="w-4 h-4 text-slate-700" />, desc: "Bay lượn quanh xe" },
-    { id: "mountain", label: "Đỉnh đèo núi", icon: <Mountain className="w-4 h-4 text-slate-700" />, desc: "Ngắm đèo & vực núi" },
-    { id: "street", label: "Góc phố", icon: <Building2 className="w-4 h-4 text-slate-700" />, desc: "Ngước nhìn tòa nhà" },
-    { id: "isometric", label: "Tự do 360°", icon: <Compass className="w-4 h-4 text-slate-700" />, desc: "Xoay & phóng to tự do" }
-  ];
-
-  const carOptions = [
-    { id: "Car_BlueCoupe", name: "Apex GT-90", type: "Coupe Cam thể thao", color: "#f97316" },
-    { id: "Car_RedSedan",  name: "Horizon Sedan", type: "Sedan trắng ngọc", color: "#ffffff" },
-    { id: "Car_Taxi",      name: "CyberCab Pro",  type: "Taxi vàng đô thị", color: "#f5b700" },
-    { id: "Car_WhiteVan",  name: "Titan Cargo",   type: "Xe tải xanh đèo", color: "#0284c7" }
+    { id: "day", label: "Ban ngày", icon: <Sun className="w-3.5 h-3.5 text-amber-500" /> },
+    { id: "sunset", label: "Hoàng hôn", icon: <Sunset className="w-3.5 h-3.5 text-orange-500" /> },
+    { id: "night", label: "Ban đêm", icon: <Moon className="w-3.5 h-3.5 text-indigo-500" /> },
+    { id: "cyberpunk", label: "Cyberpunk", icon: <Zap className="w-3.5 h-3.5 text-cyan-500" /> }
   ];
 
   return (
@@ -78,147 +58,119 @@ export const CornerSceneController: React.FC<CornerSceneControllerProps> = ({
           className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white border border-slate-200 text-slate-800 font-bold text-xs shadow-xl hover:bg-slate-50 transition-all hover:scale-105"
         >
           <Sparkles className="w-4 h-4 text-orange-500" />
-          <span>Bảng điều khiển khung cảnh & Camera</span>
+          <span>Bảng điều khiển 3D</span>
           <ChevronUp className="w-4 h-4 text-slate-400" />
         </button>
       ) : (
-        <div className="w-[330px] sm:w-[360px] rounded-3xl p-4 bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl text-slate-800 transition-all">
-          {/* Header & Tabs */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-100 border border-slate-200">
-              <button
-                onClick={() => setActiveTab("time")}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  activeTab === "time" ? "bg-orange-500 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Khung cảnh
-              </button>
-              <button
-                onClick={() => setActiveTab("camera")}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  activeTab === "camera" ? "bg-orange-500 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Góc Camera
-              </button>
-              <button
-                onClick={() => setActiveTab("car")}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  activeTab === "car" ? "bg-orange-500 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Chọn xe
-              </button>
+        <div className="w-[310px] sm:w-[340px] rounded-3xl p-4 bg-white/95 backdrop-blur-xl border border-slate-200 shadow-2xl text-slate-800 transition-all space-y-3.5">
+          {/* Header */}
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-orange-500" />
+              <span className="font-display font-bold text-xs uppercase tracking-wider text-slate-900">
+                ĐIỀU KHIỂN KHUNG CẢNH 3D
+              </span>
             </div>
 
             <button
               onClick={() => setCollapsed(true)}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
               title="Thu nhỏ"
             >
               <ChevronDown className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Tab 1: Time of Day */}
-          {activeTab === "time" && (
-            <div className="py-3 space-y-2">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block font-semibold">
-                CHỌN ÁNH SÁNG & KHÍ HẬU
-              </span>
-              <div className="grid grid-cols-2 gap-2">
-                {timeOptions.map((t) => {
-                  const active = timeOfDay === t.id;
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => onTimeChange(t.id)}
-                      className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
-                        active
-                          ? "bg-orange-50 border-orange-500 text-orange-700 font-bold shadow-sm"
-                          : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
-                      }`}
-                    >
-                      <span>{t.icon}</span>
-                      <span>{t.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+          {/* 1. CHỌN SCENE: THÀNH PHỐ vs ĐÈO NÚI (Yêu cầu chính của user) */}
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-bold block">
+              CHỌN KHU VỰC TRẢI NGHIỆM
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => onSceneChange("mountain")}
+                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-xs font-bold transition-all ${
+                  sceneMode === "mountain"
+                    ? "bg-orange-500 text-white border-orange-500 shadow-sm"
+                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                }`}
+              >
+                <Mountain className="w-4 h-4" />
+                <span>Cung đường núi</span>
+              </button>
+              <button
+                onClick={() => onSceneChange("city")}
+                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-xs font-bold transition-all ${
+                  sceneMode === "city"
+                    ? "bg-orange-500 text-white border-orange-500 shadow-sm"
+                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                }`}
+              >
+                <Building2 className="w-4 h-4" />
+                <span>Thành phố đô thị</span>
+              </button>
             </div>
-          )}
+          </div>
 
-          {/* Tab 2: Camera Modes */}
-          {activeTab === "camera" && (
-            <div className="py-3 space-y-2">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block font-semibold">
-                CHỌN GÓC QUAN SÁT CAMERA
-              </span>
-              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-                {cameraOptions.map((c) => {
-                  const active = cameraPreset === c.id;
-                  return (
-                    <button
-                      key={c.id}
-                      onClick={() => onCameraChange(c.id)}
-                      className={`flex flex-col text-left p-2 rounded-xl border transition-all ${
-                        active
-                          ? "bg-orange-50 border-orange-500 text-orange-700 font-bold shadow-sm"
-                          : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5 text-xs font-bold">
-                        {c.icon}
-                        <span>{c.label}</span>
-                      </div>
-                      <span className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{c.desc}</span>
-                    </button>
-                  );
-                })}
-              </div>
+          {/* 2. GÓC CAMERA: CHỈ CÓ GÓC GẦN VỚI GÓC RỘNG (Yêu cầu chính của user) */}
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-bold block">
+              GÓC QUAY CAMERA
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => onCameraChange("close")}
+                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-xs font-bold transition-all ${
+                  cameraMode === "close"
+                    ? "bg-orange-500 text-white border-orange-500 shadow-sm"
+                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                }`}
+              >
+                <Video className="w-4 h-4" />
+                <span>Góc gần (Theo xe)</span>
+              </button>
+              <button
+                onClick={() => onCameraChange("wide")}
+                className={`flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl border text-xs font-bold transition-all ${
+                  cameraMode === "wide"
+                    ? "bg-orange-500 text-white border-orange-500 shadow-sm"
+                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                }`}
+              >
+                <Globe className="w-4 h-4" />
+                <span>Góc rộng (Toàn cảnh)</span>
+              </button>
             </div>
-          )}
+          </div>
 
-          {/* Tab 3: Car Selection */}
-          {activeTab === "car" && (
-            <div className="py-3 space-y-2">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 block font-semibold">
-                CHỌN XE ĐỂ THEO DÕI
-              </span>
-              <div className="space-y-1.5">
-                {carOptions.map((car) => {
-                  const active = activeCarId === car.id;
-                  return (
-                    <button
-                      key={car.id}
-                      onClick={() => {
-                        onCarChange(car.id);
-                        onCameraChange("chase");
-                      }}
-                      className={`w-full flex items-center justify-between p-2 rounded-xl border text-xs transition-all ${
-                        active
-                          ? "bg-orange-50 border-orange-500 text-orange-700 font-bold shadow-sm"
-                          : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="w-3.5 h-3.5 rounded-full border border-slate-300 shadow-sm"
-                          style={{ backgroundColor: car.color }}
-                        />
-                        <span className="font-bold">{car.name}</span>
-                      </div>
-                      <span className="text-[10px] text-slate-500 font-mono">{car.type}</span>
-                    </button>
-                  );
-                })}
-              </div>
+          {/* 3. THỜI TIẾT / ÁNH SÁNG */}
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-bold block">
+              ÁNH SÁNG THỜI TIẾT
+            </span>
+            <div className="grid grid-cols-2 gap-1.5">
+              {timeOptions.map((t) => {
+                const active = timeOfDay === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => onTimeChange(t.id)}
+                    className={`flex items-center gap-1.5 py-1.5 px-2.5 rounded-xl border text-[11px] font-semibold transition-all ${
+                      active
+                        ? "bg-orange-50 border-orange-500 text-orange-700 font-bold"
+                        : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                    }`}
+                  >
+                    <span>{t.icon}</span>
+                    <span>{t.label}</span>
+                  </button>
+                );
+              })}
             </div>
-          )}
+          </div>
 
-          {/* Bottom Bar */}
-          <div className="pt-2.5 mt-1 border-t border-slate-100 flex items-center justify-between text-xs">
+          {/* 4. TỐC ĐỘ VẬN HÀNH & VÒNG LẶP VÔ TẬN */}
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
             <div className="flex items-center gap-1.5">
               <button
                 onClick={onTogglePause}

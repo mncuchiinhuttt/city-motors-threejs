@@ -1,13 +1,8 @@
 export type TimeOfDay = "day" | "sunset" | "night" | "cyberpunk";
 
-export type ExtendedCameraMode =
-  | "chase"
-  | "hood"
-  | "drone"
-  | "street"
-  | "mountain"
-  | "isometric"
-  | "topdown";
+export type SceneMode = "city" | "mountain";
+
+export type SimpleCameraMode = "close" | "wide";
 
 export interface CarSpec {
   id: string;
@@ -17,8 +12,8 @@ export interface CarSpec {
   price: number;
   monthlyPayment: number;
   horsepower: number;
-  acceleration: string; // 0-100 km/h
-  topSpeed: number; // km/h
+  acceleration: string;
+  topSpeed: number;
   range: string;
   drivetrain: string;
   colors: { name: string; hex: string }[];
