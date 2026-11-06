@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { CarCard } from "../components/CarCard";
 import { CARS_DATA } from "../data/cars";
-import { Search, Filter, Sparkles } from "lucide-react";
+import { Search, Sparkles } from "lucide-react";
 
 export const CarsInventoryPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -24,24 +24,24 @@ export const CarsInventoryPage: React.FC = () => {
   });
 
   return (
-    <div className="pt-24 pb-20 min-h-screen bg-slate-950 text-slate-100">
+    <div className="pt-24 pb-20 min-h-screen bg-slate-50 text-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="max-w-2xl mb-10">
-          <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider mb-2">
-            <Sparkles className="w-4 h-4" />
+          <div className="flex items-center gap-2 text-orange-600 text-xs font-mono font-bold uppercase tracking-wider mb-2">
+            <Sparkles className="w-4 h-4 text-orange-500" />
             <span>Showroom Online 2026</span>
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black font-display text-white tracking-tight">
+          <h1 className="text-3xl sm:text-5xl font-black font-display text-slate-900 tracking-tight">
             DANH MỤC CÁC DÒNG XE
           </h1>
-          <p className="text-sm text-slate-400 mt-2 font-light">
+          <p className="text-sm text-slate-600 mt-2 font-normal">
             Tất cả mẫu xe đều được dựng 3D chi tiết với Blender và tối ưu hóa hiển thị thời gian thực trên Three.js.
           </p>
         </div>
 
         {/* Filter & Search Bar */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-10 bg-slate-900/60 p-3 rounded-2xl border border-slate-800">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-10 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
           {/* Categories */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-2 md:pb-0">
             {categories.map((cat) => (
@@ -50,8 +50,8 @@ export const CarsInventoryPage: React.FC = () => {
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                   selectedCategory === cat.id
-                    ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 font-bold"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800"
+                    ? "bg-orange-500 text-white font-bold shadow-md shadow-orange-500/20"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 }`}
               >
                 {cat.label}
@@ -61,13 +61,13 @@ export const CarsInventoryPage: React.FC = () => {
 
           {/* Search Input */}
           <div className="relative min-w-[260px]">
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Tìm kiếm theo tên xe..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition-colors"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-orange-500 transition-colors"
             />
           </div>
         </div>
@@ -80,14 +80,14 @@ export const CarsInventoryPage: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-20 bg-slate-900/30 rounded-3xl border border-slate-800/80">
-            <p className="text-slate-400 text-base">Không tìm thấy mẫu xe nào phù hợp với từ khóa.</p>
+          <div className="text-center py-20 bg-white rounded-3xl border border-slate-200 shadow-sm">
+            <p className="text-slate-500 text-base">Không tìm thấy mẫu xe nào phù hợp với từ khóa.</p>
             <button
               onClick={() => {
                 setSelectedCategory("all");
                 setSearchQuery("");
               }}
-              className="mt-4 px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-cyan-400 hover:bg-slate-700"
+              className="mt-4 px-4 py-2 rounded-xl text-xs font-bold bg-orange-500 text-white hover:bg-orange-600"
             >
               Đặt lại bộ lọc
             </button>

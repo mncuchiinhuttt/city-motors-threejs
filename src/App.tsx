@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
 import { HomePage } from "./pages/HomePage";
@@ -17,39 +16,24 @@ const ScrollToTop: React.FC = () => {
   return null;
 };
 
-const AppContent: React.FC = () => {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-
-  return (
-    <div
-      className={`min-h-screen flex flex-col selection:bg-cyan-500 selection:text-black transition-colors duration-300 ${
-        isDark ? "bg-slate-950 text-slate-100" : "bg-slate-50 text-slate-800"
-      }`}
-    >
-      <Navbar />
-      <main className="flex-grow">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/city-experience" element={<CityExperiencePage />} />
-          <Route path="/cars" element={<CarsInventoryPage />} />
-          <Route path="/cars/:id" element={<CarDetailPage />} />
-          <Route path="/about" element={<AboutPage />} />
-        </Routes>
-      </main>
-      <Footer />
-    </div>
-  );
-};
-
 export const App: React.FC = () => {
   return (
-    <ThemeProvider>
-      <BrowserRouter>
-        <ScrollToTop />
-        <AppContent />
-      </BrowserRouter>
-    </ThemeProvider>
+    <BrowserRouter>
+      <ScrollToTop />
+      <div className="min-h-screen flex flex-col bg-white text-slate-800 selection:bg-orange-500 selection:text-white">
+        <Navbar />
+        <main className="flex-grow">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/city-experience" element={<CityExperiencePage />} />
+            <Route path="/cars" element={<CarsInventoryPage />} />
+            <Route path="/cars/:id" element={<CarDetailPage />} />
+            <Route path="/about" element={<AboutPage />} />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </BrowserRouter>
   );
 };
 
