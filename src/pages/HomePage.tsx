@@ -20,7 +20,8 @@ import {
   Video,
   Globe,
   Mountain,
-  Building2
+  Building2,
+  Cpu
 } from "lucide-react";
 
 export const HomePage: React.FC = () => {
