@@ -80,12 +80,11 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
 
   // City Loop Circuit
   const cityPoints = [
-    new THREE.Vector3(  0.0, 0.20,  16.0),
-    new THREE.Vector3( 20.0, 0.20,  16.0),
-    new THREE.Vector3( 20.0, 0.20, -16.0),
-    new THREE.Vector3(-20.0, 0.20, -16.0),
-    new THREE.Vector3(-20.0, 0.20,  16.0),
-    new THREE.Vector3(  0.0, 0.20,  16.0)
+    new THREE.Vector3( 0.0, 0.20,  34.0),
+    new THREE.Vector3( 0.0, 0.20,  15.0),
+    new THREE.Vector3( 0.0, 0.20, -15.0),
+    new THREE.Vector3( 0.0, 0.20, -32.0),
+    new THREE.Vector3( 0.0, 0.20,  34.0)
   ];
   const cityCurve = new THREE.CatmullRomCurve3(cityPoints, true, "catmullrom", 0.15);
 
