@@ -395,7 +395,7 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
     if (timeOfDay === "day") {
       if (sceneMode === "mountain") {
         scene.background = new THREE.Color(0xb0d5f2);
-        scene.fog = new THREE.Fog(0xb0d5f2, 30, 105);
+        scene.fog = new THREE.Fog(0xb0d5f2, 50, 190);
       } else {
         scene.background = new THREE.Color(0xb5daf5);
         scene.fog = new THREE.Fog(0xd4e9fa, 45, 170);

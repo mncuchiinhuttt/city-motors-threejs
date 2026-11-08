@@ -559,20 +559,56 @@ for idx in range(120):
         pine_mat = mat_pine_dark if (idx + tier) % 2 == 0 else mat_pine_mid
         add_cone(f"Floor_PineF_{idx}_{tier}", r_tier, h_tier, (px, py, z_tier), pine_mat, col=col_forest, vertices=6)
 # ==============================================================================
-# 10. MAJESTIC OPPOSITE CANYON WALL PEAKS
+# 10. 360-DEGREE MAJESTIC DISTANT MOUNTAIN RANGES, FOOTHILLS & SKY CLOUDS
 # ==============================================================================
-peaks = [
-    ("Peak_Canyon_East1", 24.0, 46.0, ( 58.0,  15.0, -24.0), 8),
-    ("Peak_Canyon_East2", 22.0, 40.0, ( 54.0, -18.0, -24.0), 7),
-    ("Peak_Canyon_North", 20.0, 36.0, (  5.0,  52.0, -24.0), 7),
-    ("Peak_Canyon_South", 21.0, 38.0, ( 25.0, -52.0, -24.0), 8),
-]
-for name, rad, h, loc, verts in peaks:
-    add_cone(f"{name}_Rock", rad, h, (loc[0], loc[1], loc[2] + h/2), mat_rock_cliff, col=col_canyon, vertices=verts)
-    snow_h = h * 0.32
-    add_cone(f"{name}_Snow", rad * 0.35, snow_h, (loc[0], loc[1], loc[2] + h - snow_h/2), mat_snow_peak, col=col_canyon, vertices=verts)
+print("Generating 360-Degree Distant Mountain Ranges & Clouds...")
+# 1. Outer Ring of 16 Grand Alpine Peaks (Radius 80m to 115m, Heights up to 60m!)
+for p_i in range(16):
+    angle = p_i * (2 * math.pi / 16) + 0.15
+    dist_p = 82.0 + ((p_i * 7) % 5) * 6.5
+    px = 3.36 + math.cos(angle) * dist_p
+    py = 2.21 + math.sin(angle) * dist_p
+    pz = -24.0 # Base at valley floor
+    h = 44.0 + ((p_i * 11) % 6) * 3.5
+    rad = 24.0 + ((p_i * 5) % 4) * 2.5
+    verts = 7 + (p_i % 3)
 
-# ==============================================================================
+    # Base rock mountain
+    add_cone(f"GrandPeak_{p_i}_Rock", rad, h, (px, py, pz + h/2), mat_rock_cliff, col=col_canyon, vertices=verts)
+    # Mid-height granite ridge strata
+    add_cone(f"GrandPeak_{p_i}_Mid", rad * 0.68, h * 0.55, (px, py, pz + h * 0.42), mat_dark_rock, col=col_canyon, vertices=verts)
+    # Towering snowy summit peak
+    snow_h = h * 0.36
+    add_cone(f"GrandPeak_{p_i}_Snow", rad * 0.36, snow_h, (px, py, pz + h - snow_h/2), mat_snow_peak, col=col_canyon, vertices=verts)
+
+# 2. Intermediate Rolling Green Foothills (Radius 50m to 66m)
+for f_i in range(12):
+    angle = f_i * (2 * math.pi / 12) + 0.28
+    dist_f = 52.0 + ((f_i * 5) % 4) * 4.5
+    fx = 3.36 + math.cos(angle) * dist_f
+    fy = 2.21 + math.sin(angle) * dist_f
+    if not is_road_clear(fx, fy, min_dist=6.5):
+        continue
+    fz = -24.0
+    fh = 26.0 + (f_i % 4) * 3.0
+    frad = 17.0 + (f_i % 3) * 2.5
+    add_cone(f"Foothill_{f_i}", frad, fh, (fx, fy, fz + fh/2), mat_canyon_bot, col=col_canyon, vertices=6)
+
+# 3. Fluffy Low-Poly Stylized Mountain Clouds in the High Sky (Z = 30m to 40m)
+cloud_locs = [
+    ( 48.0,  38.0, 33.0),
+    ( 68.0, -12.0, 36.0),
+    ( 32.0, -58.0, 31.0),
+    (-48.0, -42.0, 35.0),
+    (-62.0,  22.0, 38.0),
+    (-28.0,  58.0, 33.0),
+    ( 12.0,  68.0, 36.0),
+    ( 58.0, -48.0, 32.0)
+]
+for c_idx, (cx, cy, cz) in enumerate(cloud_locs):
+    add_box(f"Cloud_{c_idx}_A", (13.0, 7.0, 2.6), (cx, cy, cz), mat_snow_peak, col=col_canyon)
+    add_box(f"Cloud_{c_idx}_B", (8.0, 5.5, 3.4), (cx + 2.5, cy + 1.2, cz + 0.6), mat_snow_peak, col=col_canyon)
+    add_box(f"Cloud_{c_idx}_C", (9.0, 5.0, 2.2), (cx - 3.2, cy - 1.2, cz - 0.4), mat_snow_peak, col=col_canyon)
 # 11. DETAILED HERO SPORTS CAR (POSITIONED IN RIGHT-HAND LANE!)
 # ==============================================================================
 print("Building Hero Sports Car...")
