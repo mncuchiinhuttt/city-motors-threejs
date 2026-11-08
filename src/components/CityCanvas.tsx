@@ -199,12 +199,19 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
 
         const pt = heroCar.curve.getPointAt(heroCar.progress);
         const tangent = heroCar.curve.getTangentAt(heroCar.progress).normalize();
+        const upVec = new THREE.Vector3(0, 1, 0);
+        const rightVec = new THREE.Vector3().crossVectors(tangent, upVec).normalize();
 
-        // Position car firmly on the road
-        heroCar.object.position.copy(pt);
+        // RIGHT-HAND TRAFFIC LANE OFFSET:
+        // Road width is 6.6m. Right lane center is +1.65m from yellow dashed centerline!
+        const laneOffset = heroCar.curve === mountainCurve ? 1.65 : 0.0;
+        const carPos = pt.clone().add(rightVec.clone().multiplyScalar(laneOffset));
+
+        // Position car firmly in its lane
+        heroCar.object.position.copy(carPos);
 
         // Smooth heading orientation along tangent
-        const lookTarget = pt.clone().add(tangent);
+        const lookTarget = carPos.clone().add(tangent);
         heroCar.object.lookAt(lookTarget);
         heroCar.object.rotateY(Math.PI);
         // Rotate wheels
@@ -214,20 +221,20 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
 
         // CAMERA PERSPECTIVE:
         if (curCam === "close") {
-          // GÓC GẦN (CHASE CAM): Locked 7.5m behind car, 2.8m above road, looking 4.5m ahead
+          // GÓC GẦN (CHASE CAM): Locked 7.5m behind car in its lane, 2.7m above road, looking 5.0m ahead
           const behind = tangent.clone().multiplyScalar(-7.5);
-          const desiredCamPos = pt.clone().add(behind).add(new THREE.Vector3(0, 2.8, 0));
+          const desiredCamPos = carPos.clone().add(behind).add(new THREE.Vector3(0, 2.7, 0));
           camera.position.lerp(desiredCamPos, 0.12);
 
-          const forwardLook = pt.clone().add(tangent.clone().multiplyScalar(4.5)).add(new THREE.Vector3(0, 0.9, 0));
+          const forwardLook = carPos.clone().add(tangent.clone().multiplyScalar(5.0)).add(new THREE.Vector3(0, 0.9, 0));
           controls.target.lerp(forwardLook, 0.15);
         } else if (curCam === "wide") {
-          // GÓC RỘNG (PANORAMIC OVERVIEW): High vantage point showing the whole mountain pass or city
+          // GÓC RỘNG (PANORAMIC OVERVIEW): High vantage point showing the whole mountain canyon, deck and road
           const wideCamPos = heroCar.curve === mountainCurve
-            ? new THREE.Vector3(15, 35, 45)
+            ? new THREE.Vector3(28, 40, 36)
             : new THREE.Vector3(0, 36, 42);
           camera.position.lerp(wideCamPos, 0.05);
-          controls.target.lerp(new THREE.Vector3(0, 2.0, 0), 0.08);
+          controls.target.lerp(new THREE.Vector3(10, 6, -5), 0.08);
         }
       }
 
@@ -349,11 +356,16 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
           // SNAP CAMERA IMMEDIATELY ON LOAD TO CLOSE CHASE VIEW!
           const initPt = activeCurve.getPointAt(0.05);
           const initTangent = activeCurve.getTangentAt(0.05).normalize();
-          heroCarObj.position.copy(initPt);
-          heroCarObj.lookAt(initPt.clone().add(initTangent));
+          const initUp = new THREE.Vector3(0, 1, 0);
+          const initRight = new THREE.Vector3().crossVectors(initTangent, initUp).normalize();
+          const initOffset = sceneMode === "mountain" ? 1.65 : 0.0;
+          const initCarPos = initPt.clone().add(initRight.clone().multiplyScalar(initOffset));
+
+          heroCarObj.position.copy(initCarPos);
+          heroCarObj.lookAt(initCarPos.clone().add(initTangent));
           heroCarObj.rotateY(Math.PI);
-          const initCam = initPt.clone().add(initTangent.clone().multiplyScalar(-7.5)).add(new THREE.Vector3(0, 2.8, 0));
-          const initTarget = initPt.clone().add(initTangent.clone().multiplyScalar(4.5)).add(new THREE.Vector3(0, 0.9, 0));
+          const initCam = initCarPos.clone().add(initTangent.clone().multiplyScalar(-7.5)).add(new THREE.Vector3(0, 2.7, 0));
+          const initTarget = initCarPos.clone().add(initTangent.clone().multiplyScalar(5.0)).add(new THREE.Vector3(0, 0.9, 0));
 
           camera.position.copy(initCam);
           controls.target.copy(initTarget);
