@@ -354,12 +354,15 @@ for i in range(num_pts):
     bm_left_cliff.faces.new((ring_c3[i], ring_c2[i], ring_c2[next_i], ring_c3[next_i]))
     bm_left_cliff.faces.new((ring_c2[i], ring_c1[i], ring_c1[next_i], ring_c2[next_i]))
     bm_left_cliff.faces.new((ring_c1[i], ring_c0[i], ring_c0[next_i], ring_c1[next_i]))
-    # Right Canyon Abyss Strips
-    bm_right_abyss.faces.new((ring_a0[i], ring_a1[i], ring_a1[next_i], ring_a0[next_i]))
-    bm_right_abyss.faces.new((ring_a1[i], ring_a2[i], ring_a2[next_i], ring_a1[next_i]))
-    bm_right_abyss.faces.new((ring_a2[i], ring_a3[i], ring_a3[next_i], ring_a2[next_i]))
-    bm_right_abyss.faces.new((ring_a3[i], ring_a4[i], ring_a4[next_i], ring_a3[next_i]))
-
+    # Right Canyon Abyss Strips (Slot 0 for steep rock drop, Slot 1 for lush green forest slope)
+    f_ab0 = bm_right_abyss.faces.new((ring_a0[i], ring_a1[i], ring_a1[next_i], ring_a0[next_i]))
+    f_ab0.material_index = 0 # Top rock drop
+    f_ab1 = bm_right_abyss.faces.new((ring_a1[i], ring_a2[i], ring_a2[next_i], ring_a1[next_i]))
+    f_ab1.material_index = 1 # Forest slope
+    f_ab2 = bm_right_abyss.faces.new((ring_a2[i], ring_a3[i], ring_a3[next_i], ring_a2[next_i]))
+    f_ab2.material_index = 1 # Lower slope
+    f_ab3 = bm_right_abyss.faces.new((ring_a3[i], ring_a4[i], ring_a4[next_i], ring_a3[next_i]))
+    f_ab3.material_index = 1 # Valley floor transition
     # Metal Guardrail Posts
     if (i % 4) == 0:
         p_base = ring_curb_r[i].co + rights[i] * 0.10
@@ -396,8 +399,8 @@ finalize_obj("SM_GuardrailBeam", bm_guard, mat_guardrail, col_road, smooth=True)
 finalize_obj("SM_GuardrailPosts", bm_posts, mat_metal_post, col_road, smooth=False)
 
 finalize_obj("SM_LeftCliffWall", bm_left_cliff, mat_rock_cliff, col_left, smooth=False)
-finalize_obj("SM_RightDeepAbyss", bm_right_abyss, mat_rock_cliff, col_canyon, smooth=False)
-
+abyss_obj = finalize_obj("SM_RightDeepAbyss", bm_right_abyss, mat_rock_cliff, col_canyon, smooth=False)
+abyss_obj.data.materials.append(mat_canyon_bot) # Slot 1: Lush alpine forest earth
 # ==============================================================================
 # 5. CANYON FLOOR, TURQUOISE RIVER & WATERFALL
 # ==============================================================================
@@ -471,53 +474,90 @@ for i in range(2, num_pts, 4):
         pine_mat = mat_pine_dark if tier % 2 == 0 else mat_pine_mid
         add_cone(f"L_PineF_{i}_{tier}", r_tier, h_tier, (px, py, z_tier), pine_mat, col=col_forest, vertices=6)
 
-# 2. Trees on the right canyon slope (Deeply anchored 2.5m into rock slope, 100% zero floating!)
-for i in range(1, num_pts, 3):
+# 2. Dense trees on the upper canyon shelf (Right below the guardrail: dist 6m to 13m)
+for i in range(0, num_pts, 2):
     curr = mtn_samples[i]
     r = rights[i]
-    # Place on the slope between p_a1 (5.4m, drop 4.5m) and p_a2 (14.0m, drop 11.0m)
-    u = 0.35 + ((i * 7) % 5) * 0.12 # u in [0.35..0.83]
+    u = 0.20 + ((i * 3) % 4) * 0.20 # distance between 6.5m and 12.5m
     dist_r = 5.4 + u * (14.0 - 5.4)
-    # Exact polygon surface height on the slope:
     ground_z = curr.z - (4.5 + u * (11.0 - 4.5))
-
     px = curr.x + r.x * dist_r
     py = curr.y + r.y * dist_r
-
-    if not is_road_clear(px, py, min_dist=5.4):
+    if not is_road_clear(px, py, min_dist=5.3):
         continue
-
-    sc = 0.9 + (i % 3) * 0.25
+    sc = 0.85 + (i % 4) * 0.25
     trunk_h = 5.2 * sc
-    # Center trunk so bottom is sunk 2.2m UNDERGROUND!
     trunk_cz = ground_z + (trunk_h / 2.0 - 2.2 * sc)
-    add_cylinder(f"R_Slope_Trunk_{i}", 0.32 * sc, trunk_h, (px, py, trunk_cz), mat_pine_trunk, col=col_forest, vertices=6)
-
+    add_cylinder(f"R_Shelf_Trunk_{i}", 0.32 * sc, trunk_h, (px, py, trunk_cz), mat_pine_trunk, col=col_forest, vertices=6)
     for tier in range(3):
         r_tier = (1.9 - tier * 0.40) * sc
         h_tier = (2.4 - tier * 0.25) * sc
         z_tier = ground_z + (2.6 + tier * 1.3) * sc
         pine_mat = mat_pine_dark if (i + tier) % 2 == 0 else mat_pine_mid
-        add_cone(f"R_Slope_PineF_{i}_{tier}", r_tier, h_tier, (px, py, z_tier), pine_mat, col=col_forest, vertices=6)
+        add_cone(f"R_Shelf_PineF_{i}_{tier}", r_tier, h_tier, (px, py, z_tier), pine_mat, col=col_forest, vertices=6)
 
-# 3. Dense groves deep in the canyon floor (Floor at Z = -24.0m, trunks sunk 2.0m deep)
-random.seed(42)
-for idx in range(45):
-    px = random.uniform(5.0, 55.0)
-    py = random.uniform(-45.0, 45.0)
-    ground_z = -24.0
-    if not is_road_clear(px, py, min_dist=5.2):
+# 3. Dense trees on the mid canyon slope (Distance 14m to 26m, drop 11m to 18m)
+for i in range(0, num_pts, 2):
+    curr = mtn_samples[i]
+    r = rights[i]
+    u = 0.15 + ((i * 5) % 5) * 0.18 # distance between 15m and 24m
+    dist_r = 14.0 + u * (26.0 - 14.0)
+    ground_z = curr.z - (11.0 + u * (18.0 - 11.0))
+    px = curr.x + r.x * dist_r
+    py = curr.y + r.y * dist_r
+    if not is_road_clear(px, py, min_dist=5.3):
         continue
-    psc = random.uniform(1.8, 3.2)
-    trunk_h = 5.0 * psc
-    trunk_cz = ground_z + (trunk_h / 2.0 - 2.0 * psc) # Sunk 2m below floor
-    add_cylinder(f"Deep_Trunk_{idx}", 0.26 * psc, trunk_h, (px, py, trunk_cz), mat_pine_trunk, col=col_forest, vertices=6)
+    sc = 1.1 + (i % 3) * 0.35
+    trunk_h = 6.0 * sc
+    trunk_cz = ground_z + (trunk_h / 2.0 - 2.5 * sc)
+    add_cylinder(f"R_Mid_Trunk_{i}", 0.35 * sc, trunk_h, (px, py, trunk_cz), mat_pine_trunk, col=col_forest, vertices=6)
     for tier in range(3):
-        r_tier = (1.8 - tier * 0.4) * psc
-        h_tier = (2.4 - tier * 0.25) * psc
-        z_tier = ground_z + (2.5 + tier * 1.3) * psc
-        pine_mat = mat_pine_dark if tier % 2 == 0 else mat_pine_mid
-        add_cone(f"Deep_PineF_{idx}_{tier}", r_tier, h_tier, (px, py, z_tier), pine_mat, col=col_forest, vertices=6)
+        r_tier = (2.2 - tier * 0.45) * sc
+        h_tier = (2.8 - tier * 0.30) * sc
+        z_tier = ground_z + (3.0 + tier * 1.5) * sc
+        pine_mat = mat_pine_mid if (i + tier) % 2 == 0 else mat_pine_dark
+        add_cone(f"R_Mid_PineF_{i}_{tier}", r_tier, h_tier, (px, py, z_tier), pine_mat, col=col_forest, vertices=6)
+
+# 4. Dense trees on the lower canyon slope (Distance 26m to 44m, drop 18m to 24m)
+for i in range(1, num_pts, 3):
+    curr = mtn_samples[i]
+    r = rights[i]
+    u = 0.20 + ((i * 3) % 4) * 0.22 # distance between 28m and 42m
+    dist_r = 26.0 + u * (44.0 - 26.0)
+    ground_z = curr.z - (18.0 + u * (24.0 - 18.0))
+    px = curr.x + r.x * dist_r
+    py = curr.y + r.y * dist_r
+    if not is_road_clear(px, py, min_dist=5.3):
+        continue
+    sc = 1.3 + (i % 3) * 0.4
+    trunk_h = 6.8 * sc
+    trunk_cz = ground_z + (trunk_h / 2.0 - 2.5 * sc)
+    add_cylinder(f"R_Low_Trunk_{i}", 0.38 * sc, trunk_h, (px, py, trunk_cz), mat_pine_trunk, col=col_forest, vertices=6)
+    for tier in range(3):
+        r_tier = (2.4 - tier * 0.50) * sc
+        h_tier = (3.0 - tier * 0.35) * sc
+        z_tier = ground_z + (3.2 + tier * 1.6) * sc
+        pine_mat = mat_pine_dark if (i + tier) % 2 == 0 else mat_pine_mid
+        add_cone(f"R_Low_PineF_{i}_{tier}", r_tier, h_tier, (px, py, z_tier), pine_mat, col=col_forest, vertices=6)
+
+# 5. Dense forest canopy deep across the canyon floor (120+ large trees at Z = -24m)
+random.seed(42)
+for idx in range(120):
+    px = random.uniform(5.0, 60.0)
+    py = random.uniform(-48.0, 48.0)
+    ground_z = -24.0
+    if not is_road_clear(px, py, min_dist=5.3):
+        continue
+    psc = random.uniform(1.8, 3.4)
+    trunk_h = 6.0 * psc
+    trunk_cz = ground_z + (trunk_h / 2.0 - 2.2 * psc) # Sunk deep into floor
+    add_cylinder(f"Floor_Trunk_{idx}", 0.28 * psc, trunk_h, (px, py, trunk_cz), mat_pine_trunk, col=col_forest, vertices=6)
+    for tier in range(3):
+        r_tier = (1.9 - tier * 0.42) * psc
+        h_tier = (2.6 - tier * 0.28) * psc
+        z_tier = ground_z + (2.8 + tier * 1.4) * psc
+        pine_mat = mat_pine_dark if (idx + tier) % 2 == 0 else mat_pine_mid
+        add_cone(f"Floor_PineF_{idx}_{tier}", r_tier, h_tier, (px, py, z_tier), pine_mat, col=col_forest, vertices=6)
 # ==============================================================================
 # 10. MAJESTIC OPPOSITE CANYON WALL PEAKS
 # ==============================================================================
