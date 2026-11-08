@@ -110,7 +110,7 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    const camera = new THREE.PerspectiveCamera(45, width / height, 0.4, 500);
+    const camera = new THREE.PerspectiveCamera(45, width / height, 0.8, 500);
     camera.position.set(0, 8, 20);
     cameraRef.current = camera;
 

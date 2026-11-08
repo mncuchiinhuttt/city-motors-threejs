@@ -111,8 +111,8 @@ def add_cylinder(name, radius, depth, loc, mat, col=col_forest, vertices=8, rota
     col.objects.link(obj)
     return obj
 
-def add_cone(name, radius1, depth, loc, mat, col=col_forest, vertices=7, rotation=(0,0,0)):
-    bpy.ops.mesh.primitive_cone_add(vertices=vertices, radius1=radius1, depth=depth, location=loc, rotation=rotation)
+def add_cone(name, radius1, depth, loc, mat, col=col_forest, vertices=7, rotation=(0,0,0), radius2=0.0):
+    bpy.ops.mesh.primitive_cone_add(vertices=vertices, radius1=radius1, radius2=radius2, depth=depth, location=loc, rotation=rotation)
     obj = bpy.context.active_object
     obj.name = name
     obj.data.materials.append(mat)
@@ -120,7 +120,6 @@ def add_cone(name, radius1, depth, loc, mat, col=col_forest, vertices=7, rotatio
         c.objects.unlink(obj)
     col.objects.link(obj)
     return obj
-
 # ==============================================================================
 # 3. SPLINE GEOMETRY - AUTHENTIC TOUGE MOUNTAIN PASS
 # ==============================================================================
@@ -573,14 +572,15 @@ for p_i in range(16):
     rad = 24.0 + ((p_i * 5) % 4) * 2.5
     verts = 7 + (p_i % 3)
 
-    # Base rock mountain
-    add_cone(f"GrandPeak_{p_i}_Rock", rad, h, (px, py, pz + h/2), mat_rock_cliff, col=col_canyon, vertices=verts)
-    # Mid-height granite ridge strata
-    add_cone(f"GrandPeak_{p_i}_Mid", rad * 0.68, h * 0.55, (px, py, pz + h * 0.42), mat_dark_rock, col=col_canyon, vertices=verts)
-    # Towering snowy summit peak
-    snow_h = h * 0.36
-    add_cone(f"GrandPeak_{p_i}_Snow", rad * 0.36, snow_h, (px, py, pz + h - snow_h/2), mat_snow_peak, col=col_canyon, vertices=verts)
+    snow_ratio = 0.35 # Top 35% is snow, bottom 65% is granite rock
+    h_rock = h * (1.0 - snow_ratio)
+    h_snow = h * snow_ratio
+    r_neck = rad * snow_ratio
 
+    # Lower Granite Rock Frustum (Truncated cone from pz to pz + h_rock)
+    add_cone(f"GrandPeak_{p_i}_Rock", rad, h_rock, (px, py, pz + h_rock / 2.0), mat_rock_cliff, col=col_canyon, vertices=verts, radius2=r_neck)
+    # Upper Snow Cap (Sits precisely on top of the rock frustum with ZERO overlapping faces!)
+    add_cone(f"GrandPeak_{p_i}_Snow", r_neck, h_snow, (px, py, pz + h_rock + h_snow / 2.0), mat_snow_peak, col=col_canyon, vertices=verts, radius2=0.0)
 # 2. Intermediate Rolling Green Foothills (Radius 50m to 66m)
 for f_i in range(12):
     angle = f_i * (2 * math.pi / 12) + 0.28
