@@ -272,24 +272,34 @@ for i in range(num_pts):
         bm_edge_lines.verts.new(p_wnr1)
     ))
 
-    # LEFT MOUNTAIN WALL HUGGING THE ROAD (Steep alpine cut-slope, 100% collision-free!):
-    # Tier 0: Foot of cliff right at curb edge (-3.65m)
-    ring_c0.append(bm_left_cliff.verts.new(p_cl))
-    # Tier 1: Lower rock strata (offset -4.15m, height +2.2m)
-    p_c1 = curr - right * 4.15 + Vector((0, 0, 2.2 + math.sin(i * 0.3) * 0.3))
-    ring_c1.append(bm_left_cliff.verts.new(p_c1))
-    # Tier 2: Mid cliff face (offset -4.85m, height +5.5m)
-    p_c2 = curr - right * 4.85 + Vector((0, 0, 5.5 + math.cos(i * 0.25) * 0.5))
-    ring_c2.append(bm_left_cliff.verts.new(p_c2))
-    # Tier 3: Upper rock cliff (offset -5.50m, height +9.2m)
-    p_c3 = curr - right * 5.50 + Vector((0, 0, 9.2 + math.sin(i * 0.2) * 0.6))
-    ring_c3.append(bm_left_cliff.verts.new(p_c3))
-    # Tier 4: Summit ridge crest (offset -6.10m, height +13.5m)
-    p_c4 = curr - right * 6.10 + Vector((0, 0, 13.5 + math.cos(i * 0.15) * 0.8))
-    ring_c4.append(bm_left_cliff.verts.new(p_c4))
-    # Tier 5: Grounded skirt behind ridge to seal watertight (offset -6.30m, height -3.0m)
-    p_c5 = curr - right * 6.30 + Vector((0, 0, -3.0))
-    ring_c5.append(bm_left_cliff.verts.new(p_c5))
+    # SOLID CENTRAL MOUNTAIN MASSIF:
+    # Interpolating from central summit peak (3.36, 2.21, 26.5) down to the left curb p_cl
+    ring_c0.append(bm_left_cliff.verts.new(p_cl)) # Exactly at curb edge
+
+    peak_x, peak_y, peak_z = 3.36, 2.21, 26.5
+    # Tier 1 (Lower mountain slope - 80% distance from peak to curb)
+    p1_x = 0.20 * peak_x + 0.80 * p_cl.x
+    p1_y = 0.20 * peak_y + 0.80 * p_cl.y
+    p1_z = p_cl.z + 2.2 + math.sin(i * 0.35) * 0.5
+    ring_c1.append(bm_left_cliff.verts.new(Vector((p1_x, p1_y, p1_z))))
+
+    # Tier 2 (Mid alpine shelf - 55% distance)
+    p2_x = 0.45 * peak_x + 0.55 * p_cl.x
+    p2_y = 0.45 * peak_y + 0.55 * p_cl.y
+    p2_z = 0.45 * peak_z + 0.55 * p_cl.z + math.cos(i * 0.3) * 0.8
+    ring_c2.append(bm_left_cliff.verts.new(Vector((p2_x, p2_y, p2_z))))
+
+    # Tier 3 (High rocky crags - 30% distance)
+    p3_x = 0.70 * peak_x + 0.30 * p_cl.x
+    p3_y = 0.70 * peak_y + 0.30 * p_cl.y
+    p3_z = 0.70 * peak_z + 0.30 * p_cl.z + math.sin(i * 0.25) * 1.0
+    ring_c3.append(bm_left_cliff.verts.new(Vector((p3_x, p3_y, p3_z))))
+
+    # Tier 4 (Summit crown around peak - 12% distance)
+    p4_x = 0.88 * peak_x + 0.12 * p_cl.x
+    p4_y = 0.88 * peak_y + 0.12 * p_cl.y
+    p4_z = 24.2 + math.cos(i * 0.2) * 0.6
+    ring_c4.append(bm_left_cliff.verts.new(Vector((p4_x, p4_y, p4_z))))
     # RIGHT CANYON ABYSS PLUNGING 24 METERS DOWN:
     ring_a0.append(bm_right_abyss.verts.new(p_cr))
     p_a1 = curr + right * 5.4 - Vector((0, 0, 4.5))
@@ -333,13 +343,17 @@ for i in range(num_pts):
     gv_t2 = guard_verts[next_i * 2 + 1]
     bm_guard.faces.new((gv_b1, gv_t1, gv_t2, gv_b2))
 
-    # Left Mountain Wall Strips
-    bm_left_cliff.faces.new((ring_c0[i], ring_c1[i], ring_c1[next_i], ring_c0[next_i]))
-    bm_left_cliff.faces.new((ring_c1[i], ring_c2[i], ring_c2[next_i], ring_c1[next_i]))
-    bm_left_cliff.faces.new((ring_c2[i], ring_c3[i], ring_c3[next_i], ring_c2[next_i]))
-    bm_left_cliff.faces.new((ring_c3[i], ring_c4[i], ring_c4[next_i], ring_c3[next_i]))
-    bm_left_cliff.faces.new((ring_c4[i], ring_c5[i], ring_c5[next_i], ring_c4[next_i]))
+# Summit Apex Vertex for Solid Mountain Peak
+v_summit_apex = bm_left_cliff.verts.new(Vector((3.36, 2.21, 26.5)))
 
+for i in range(num_pts):
+    next_i = (i + 1) % num_pts
+    # Solid Mountain Facets connecting all tiers down to road curb seamlessly!
+    bm_left_cliff.faces.new((v_summit_apex, ring_c4[i], ring_c4[next_i])) # Summit fan
+    bm_left_cliff.faces.new((ring_c4[i], ring_c3[i], ring_c3[next_i], ring_c4[next_i]))
+    bm_left_cliff.faces.new((ring_c3[i], ring_c2[i], ring_c2[next_i], ring_c3[next_i]))
+    bm_left_cliff.faces.new((ring_c2[i], ring_c1[i], ring_c1[next_i], ring_c2[next_i]))
+    bm_left_cliff.faces.new((ring_c1[i], ring_c0[i], ring_c0[next_i], ring_c1[next_i]))
     # Right Canyon Abyss Strips
     bm_right_abyss.faces.new((ring_a0[i], ring_a1[i], ring_a1[next_i], ring_a0[next_i]))
     bm_right_abyss.faces.new((ring_a1[i], ring_a2[i], ring_a2[next_i], ring_a1[next_i]))
@@ -441,19 +455,18 @@ for idx, (bloc, bsize) in enumerate(boulders):
         add_box(f"SM_CanyonBoulder_{idx}", bsize, bloc, mat_dark_rock, col=col_canyon, rotation=(0.2, 0.4, idx * 0.7))
 print("Generating 250+ Alpine Pine Trees...")
 # 1. Trees on the left mountain cliff ledges
-for i in range(4, num_pts, 4):
+for i in range(2, num_pts, 5):
     curr = mtn_samples[i]
-    r = rights[i]
-    px = curr.x - r.x * 6.5
-    py = curr.y - r.y * 6.5
-    pz = curr.z + 4.2
-    if not is_road_clear(px, py, min_dist=5.0):
+    px = 0.42 * 3.36 + 0.58 * curr.x
+    py = 0.42 * 2.21 + 0.58 * curr.y
+    pz = 0.42 * 26.5 + 0.58 * curr.z
+    if not is_road_clear(px, py, min_dist=5.2):
         continue
-    add_cylinder(f"L_Trunk_{i}", 0.24, 1.8, (px, py, pz + 0.9), mat_pine_trunk, col=col_forest, vertices=6)
+    add_cylinder(f"L_Trunk_{i}", 0.28, 2.0, (px, py, pz + 1.0), mat_pine_trunk, col=col_forest, vertices=6)
     for tier in range(3):
-        r_tier = 1.4 - tier * 0.32
-        h_tier = 1.6 - tier * 0.15
-        z_tier = pz + 1.8 + tier * 0.95
+        r_tier = 1.6 - tier * 0.35
+        h_tier = 1.8 - tier * 0.18
+        z_tier = pz + 2.0 + tier * 1.05
         pine_mat = mat_pine_dark if tier % 2 == 0 else mat_pine_mid
         add_cone(f"L_PineF_{i}_{tier}", r_tier, h_tier, (px, py, z_tier), pine_mat, col=col_forest, vertices=6)
 # 2. Trees on the right canyon slope (Tops peeking over the guardrail into the abyss!)

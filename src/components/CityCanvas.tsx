@@ -229,12 +229,21 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
           const forwardLook = carPos.clone().add(tangent.clone().multiplyScalar(4.5)).add(new THREE.Vector3(0, 0.8, 0));
           controls.target.lerp(forwardLook, 0.18);
         } else if (curCam === "wide") {
-          // GÓC RỘNG (PANORAMIC OVERVIEW): High vantage point showing the whole mountain canyon, deck and road
-          const wideCamPos = heroCar.curve === mountainCurve
-            ? new THREE.Vector3(28, 40, 36)
-            : new THREE.Vector3(0, 36, 42);
-          camera.position.lerp(wideCamPos, 0.05);
-          controls.target.lerp(new THREE.Vector3(10, 6, -5), 0.08);
+          if (heroCar.curve === mountainCurve) {
+            // GÓC RỘNG: Đưa camera rộng qua bên phải chiếc xe một chút (flank chase view)
+            // Lùi 5.6m, lệch sang phải +3.6m nhìn chéo vào xe và đường đèo phía trước
+            const behindOffset = tangent.clone().multiplyScalar(-5.6);
+            const rightOffset = rightVec.clone().multiplyScalar(3.6);
+            const wideCamPos = carPos.clone().add(behindOffset).add(rightOffset).add(new THREE.Vector3(0, 2.2, 0));
+            camera.position.lerp(wideCamPos, 0.12);
+
+            const forwardLook = carPos.clone().add(tangent.clone().multiplyScalar(4.0)).add(new THREE.Vector3(0, 0.8, 0));
+            controls.target.lerp(forwardLook, 0.15);
+          } else {
+            const wideCamPos = new THREE.Vector3(0, 36, 42);
+            camera.position.lerp(wideCamPos, 0.05);
+            controls.target.lerp(new THREE.Vector3(0, 2.0, 0), 0.08);
+          }
         }
       }
 
