@@ -272,19 +272,24 @@ for i in range(num_pts):
         bm_edge_lines.verts.new(p_wnr1)
     ))
 
-    # LEFT MOUNTAIN WALL HUGGING THE ROAD (Seamless, zero holes!):
+    # LEFT MOUNTAIN WALL HUGGING THE ROAD (Steep alpine cut-slope, 100% collision-free!):
+    # Tier 0: Foot of cliff right at curb edge (-3.65m)
     ring_c0.append(bm_left_cliff.verts.new(p_cl))
-    p_c1 = curr - right * 5.5 + Vector((0, 0, 2.5 + math.sin(i * 0.25) * 0.5))
+    # Tier 1: Lower rock strata (offset -4.15m, height +2.2m)
+    p_c1 = curr - right * 4.15 + Vector((0, 0, 2.2 + math.sin(i * 0.3) * 0.3))
     ring_c1.append(bm_left_cliff.verts.new(p_c1))
-    p_c2 = curr - right * 9.5 + Vector((0, 0, 6.0 + math.cos(i * 0.3) * 0.8))
+    # Tier 2: Mid cliff face (offset -4.85m, height +5.5m)
+    p_c2 = curr - right * 4.85 + Vector((0, 0, 5.5 + math.cos(i * 0.25) * 0.5))
     ring_c2.append(bm_left_cliff.verts.new(p_c2))
-    p_c3 = curr - right * 15.0 + Vector((0, 0, 11.5 + math.sin(i * 0.2) * 1.2))
+    # Tier 3: Upper rock cliff (offset -5.50m, height +9.2m)
+    p_c3 = curr - right * 5.50 + Vector((0, 0, 9.2 + math.sin(i * 0.2) * 0.6))
     ring_c3.append(bm_left_cliff.verts.new(p_c3))
-    p_c4 = curr - right * 22.0 + Vector((0, 0, 17.0 + math.cos(i * 0.15) * 1.5))
+    # Tier 4: Summit ridge crest (offset -6.10m, height +13.5m)
+    p_c4 = curr - right * 6.10 + Vector((0, 0, 13.5 + math.cos(i * 0.15) * 0.8))
     ring_c4.append(bm_left_cliff.verts.new(p_c4))
-    p_c5 = curr - right * 34.0 - Vector((0, 0, 4.0))
+    # Tier 5: Grounded skirt behind ridge to seal watertight (offset -6.30m, height -3.0m)
+    p_c5 = curr - right * 6.30 + Vector((0, 0, -3.0))
     ring_c5.append(bm_left_cliff.verts.new(p_c5))
-
     # RIGHT CANYON ABYSS PLUNGING 24 METERS DOWN:
     ring_a0.append(bm_right_abyss.verts.new(p_cr))
     p_a1 = curr + right * 5.4 - Vector((0, 0, 4.5))
