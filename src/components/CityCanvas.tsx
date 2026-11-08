@@ -309,7 +309,7 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
             }
           }
 
-          if (child.name === "Car_BlueCoupe") {
+          if (child.name === "Car_HeroOrange" || child.name === "Car_BlueCoupe" || (child.name.startsWith("Car_") && !heroCarObj)) {
             heroCarObj = child;
           }
         });
