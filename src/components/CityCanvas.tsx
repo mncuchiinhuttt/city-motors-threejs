@@ -60,21 +60,21 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
   // In Three.js coordinates: Y is UP, Z is depth!
   // Mountain Pass Circuit: Climbs up from Y=0.35m to peak Y=5.15m and loops around peaks
   const mtnPoints = [
-    new THREE.Vector3( -6.0, 0.35,  22.0),
-    new THREE.Vector3(  8.0, 0.65,  22.0),
-    new THREE.Vector3( 22.0, 1.55,  16.0),
-    new THREE.Vector3( 26.0, 2.55,   7.0),
-    new THREE.Vector3( 18.0, 3.45,  -2.0), // S-curve cutting inward
-    new THREE.Vector3( 24.0, 4.45, -12.0),
-    new THREE.Vector3( 26.0, 5.25, -20.0), // Mountain Summit Overlook
-    new THREE.Vector3( 16.0, 4.45, -26.0), // Hairpin turn
-    new THREE.Vector3(  4.0, 3.45, -26.0),
-    new THREE.Vector3( -8.0, 2.45, -22.0),
-    new THREE.Vector3(-18.0, 1.55, -14.0),
-    new THREE.Vector3(-24.0, 0.85,  -4.0),
-    new THREE.Vector3(-24.0, 0.45,   8.0),
-    new THREE.Vector3(-16.0, 0.35,  18.0),
-    new THREE.Vector3( -6.0, 0.35,  22.0)
+    new THREE.Vector3( -6.0, 2.08,  22.0),
+    new THREE.Vector3(  8.0, 2.68,  22.0),
+    new THREE.Vector3( 20.0, 3.88,  17.0),
+    new THREE.Vector3( 26.0, 5.28,   8.0),
+    new THREE.Vector3( 20.0, 6.58,  -2.0),
+    new THREE.Vector3( 24.0, 7.88, -12.0),
+    new THREE.Vector3( 25.0, 8.88, -20.0), // High Summit Overlook
+    new THREE.Vector3( 16.0, 7.88, -26.0), // Hairpin curve
+    new THREE.Vector3(  4.0, 6.48, -26.0),
+    new THREE.Vector3( -8.0, 5.08, -22.0),
+    new THREE.Vector3(-18.0, 3.88, -14.0),
+    new THREE.Vector3(-24.0, 2.88,  -4.0),
+    new THREE.Vector3(-24.0, 2.48,   8.0),
+    new THREE.Vector3(-16.0, 2.08,  18.0),
+    new THREE.Vector3( -6.0, 2.08,  22.0)
   ];
   const mountainCurve = new THREE.CatmullRomCurve3(mtnPoints, true, "catmullrom", 0.15);
 
