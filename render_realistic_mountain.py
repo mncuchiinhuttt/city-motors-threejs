@@ -455,64 +455,69 @@ for idx, (bloc, bsize) in enumerate(boulders):
         add_box(f"SM_CanyonBoulder_{idx}", bsize, bloc, mat_dark_rock, col=col_canyon, rotation=(0.2, 0.4, idx * 0.7))
 print("Generating 250+ Alpine Pine Trees...")
 # 1. Trees on the left mountain cliff ledges
-for i in range(2, num_pts, 5):
+for i in range(2, num_pts, 4):
     curr = mtn_samples[i]
-    px = 0.42 * 3.36 + 0.58 * curr.x
-    py = 0.42 * 2.21 + 0.58 * curr.y
-    pz = 0.42 * 26.5 + 0.58 * curr.z
+    px = 0.45 * 3.36 + 0.55 * curr.x
+    py = 0.45 * 2.21 + 0.55 * curr.y
+    ground_z = 0.45 * 26.5 + 0.55 * curr.z
     if not is_road_clear(px, py, min_dist=5.2):
         continue
-    add_cylinder(f"L_Trunk_{i}", 0.28, 2.0, (px, py, pz + 1.0), mat_pine_trunk, col=col_forest, vertices=6)
+    # Trunk height 4.5m, embedded 2.0m deep into solid rock
+    add_cylinder(f"L_Trunk_{i}", 0.30, 4.5, (px, py, ground_z + 0.25), mat_pine_trunk, col=col_forest, vertices=6)
     for tier in range(3):
-        r_tier = 1.6 - tier * 0.35
-        h_tier = 1.8 - tier * 0.18
-        z_tier = pz + 2.0 + tier * 1.05
+        r_tier = 1.7 - tier * 0.38
+        h_tier = 2.0 - tier * 0.20
+        z_tier = ground_z + 2.4 + tier * 1.2
         pine_mat = mat_pine_dark if tier % 2 == 0 else mat_pine_mid
         add_cone(f"L_PineF_{i}_{tier}", r_tier, h_tier, (px, py, z_tier), pine_mat, col=col_forest, vertices=6)
-# 2. Trees on the right canyon slope (Tops peeking over the guardrail into the abyss!)
-for i in range(2, num_pts, 3):
+
+# 2. Trees on the right canyon slope (Deeply anchored 2.5m into rock slope, 100% zero floating!)
+for i in range(1, num_pts, 3):
     curr = mtn_samples[i]
     r = rights[i]
-    dist_r = 8.5 + (i % 5) * 1.5
-    drop_z = 5.5 + (i % 4) * 1.5
+    # Place on the slope between p_a1 (5.4m, drop 4.5m) and p_a2 (14.0m, drop 11.0m)
+    u = 0.35 + ((i * 7) % 5) * 0.12 # u in [0.35..0.83]
+    dist_r = 5.4 + u * (14.0 - 5.4)
+    # Exact polygon surface height on the slope:
+    ground_z = curr.z - (4.5 + u * (11.0 - 4.5))
+
     px = curr.x + r.x * dist_r
     py = curr.y + r.y * dist_r
-    pz = curr.z - drop_z
-    if not is_road_clear(px, py, min_dist=5.2):
+
+    if not is_road_clear(px, py, min_dist=5.4):
         continue
-    sc = 0.85 + (i % 3) * 0.25
-    add_cylinder(f"R_Slope_Trunk_{i}", 0.28 * sc, 2.2 * sc, (px, py, pz + 1.1 * sc), mat_pine_trunk, col=col_forest, vertices=6)
+
+    sc = 0.9 + (i % 3) * 0.25
+    trunk_h = 5.2 * sc
+    # Center trunk so bottom is sunk 2.2m UNDERGROUND!
+    trunk_cz = ground_z + (trunk_h / 2.0 - 2.2 * sc)
+    add_cylinder(f"R_Slope_Trunk_{i}", 0.32 * sc, trunk_h, (px, py, trunk_cz), mat_pine_trunk, col=col_forest, vertices=6)
+
     for tier in range(3):
-        r_tier = (1.8 - tier * 0.38) * sc
-        h_tier = (2.2 - tier * 0.22) * sc
-        z_tier = pz + (2.2 + tier * 1.1) * sc
+        r_tier = (1.9 - tier * 0.40) * sc
+        h_tier = (2.4 - tier * 0.25) * sc
+        z_tier = ground_z + (2.6 + tier * 1.3) * sc
         pine_mat = mat_pine_dark if (i + tier) % 2 == 0 else mat_pine_mid
         add_cone(f"R_Slope_PineF_{i}_{tier}", r_tier, h_tier, (px, py, z_tier), pine_mat, col=col_forest, vertices=6)
-# 3. Dense groves deep in the canyon floor emerging through the mist (Z = -24m)
+
+# 3. Dense groves deep in the canyon floor (Floor at Z = -24.0m, trunks sunk 2.0m deep)
 random.seed(42)
 for idx in range(45):
     px = random.uniform(5.0, 55.0)
     py = random.uniform(-45.0, 45.0)
-    pz = -24.0
+    ground_z = -24.0
     if not is_road_clear(px, py, min_dist=5.2):
         continue
     psc = random.uniform(1.8, 3.2)
-    add_cylinder(f"Deep_Trunk_{idx}", 0.25 * psc, 2.2 * psc, (px, py, pz + 1.1 * psc), mat_pine_trunk, col=col_forest, vertices=6)
+    trunk_h = 5.0 * psc
+    trunk_cz = ground_z + (trunk_h / 2.0 - 2.0 * psc) # Sunk 2m below floor
+    add_cylinder(f"Deep_Trunk_{idx}", 0.26 * psc, trunk_h, (px, py, trunk_cz), mat_pine_trunk, col=col_forest, vertices=6)
     for tier in range(3):
-        r_tier = (1.7 - tier * 0.4) * psc
-        h_tier = (2.2 - tier * 0.25) * psc
-        z_tier = pz + (2.2 + tier * 1.2) * psc
+        r_tier = (1.8 - tier * 0.4) * psc
+        h_tier = (2.4 - tier * 0.25) * psc
+        z_tier = ground_z + (2.5 + tier * 1.3) * psc
         pine_mat = mat_pine_dark if tier % 2 == 0 else mat_pine_mid
         add_cone(f"Deep_PineF_{idx}_{tier}", r_tier, h_tier, (px, py, z_tier), pine_mat, col=col_forest, vertices=6)
-# 4. Alpine Mountain Shrubs clinging to the canyon cliff edge
-for idx in range(25):
-    s_idx = (idx * 7) % num_pts
-    curr = mtn_samples[s_idx]
-    r = rights[s_idx]
-    shrub_loc = curr + r * 5.2 - Vector((0, 0, 2.2 + (idx % 3) * 0.6))
-    if not is_road_clear(shrub_loc.x, shrub_loc.y, min_dist=4.5):
-        continue
-    add_cone(f"SM_Shrub_{idx}", 0.9, 0.8, shrub_loc, mat_moss_shrub, col=col_forest, vertices=5)
 # ==============================================================================
 # 10. MAJESTIC OPPOSITE CANYON WALL PEAKS
 # ==============================================================================
