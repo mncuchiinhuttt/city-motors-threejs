@@ -206,7 +206,7 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
         // Smooth heading orientation along tangent
         const lookTarget = pt.clone().add(tangent);
         heroCar.object.lookAt(lookTarget);
-
+        heroCar.object.rotateY(Math.PI);
         // Rotate wheels
         heroCar.wheels.forEach((w) => {
           w.rotation.x += delta * 20 * curSpeed;
@@ -351,7 +351,7 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
           const initTangent = activeCurve.getTangentAt(0.05).normalize();
           heroCarObj.position.copy(initPt);
           heroCarObj.lookAt(initPt.clone().add(initTangent));
-
+          heroCarObj.rotateY(Math.PI);
           const initCam = initPt.clone().add(initTangent.clone().multiplyScalar(-7.5)).add(new THREE.Vector3(0, 2.8, 0));
           const initTarget = initPt.clone().add(initTangent.clone().multiplyScalar(4.5)).add(new THREE.Vector3(0, 0.9, 0));
 
