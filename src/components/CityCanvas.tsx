@@ -221,29 +221,24 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
 
         // CAMERA PERSPECTIVE:
         if (curCam === "close") {
-          // GÓC GẦN (CHASE CAM): Tighter 4.6m chase distance to never clip into mountain wall, 1.95m above asphalt
+          // GÓC GẦN (CHASE CAM): Bám sát ngay sau đuôi xe trong làn phải, cao 1.85m
           const behind = tangent.clone().multiplyScalar(-4.6);
-          const desiredCamPos = carPos.clone().add(behind).add(new THREE.Vector3(0, 1.95, 0));
+          const desiredCamPos = carPos.clone().add(behind).add(new THREE.Vector3(0, 1.85, 0));
           camera.position.lerp(desiredCamPos, 0.15);
 
           const forwardLook = carPos.clone().add(tangent.clone().multiplyScalar(4.5)).add(new THREE.Vector3(0, 0.8, 0));
           controls.target.lerp(forwardLook, 0.18);
         } else if (curCam === "wide") {
-          if (heroCar.curve === mountainCurve) {
-            // GÓC RỘNG: Đưa camera rộng qua bên phải chiếc xe một chút (flank chase view)
-            // Lùi 5.6m, lệch sang phải +3.6m nhìn chéo vào xe và đường đèo phía trước
-            const behindOffset = tangent.clone().multiplyScalar(-5.6);
-            const rightOffset = rightVec.clone().multiplyScalar(3.6);
-            const wideCamPos = carPos.clone().add(behindOffset).add(rightOffset).add(new THREE.Vector3(0, 2.2, 0));
-            camera.position.lerp(wideCamPos, 0.12);
+          // GÓC RỘNG ĐIỆN ẢNH (CINEMATIC ACTION CAM - CHẠY THEO XE):
+          // Máy quay vẫn bám chạy theo xe liên tục, lùi 7.8m, lệch sang phải 5.2m (phía vực nhìn chéo vào xe), cao 3.2m
+          // Cự ly vừa phải, cực đẹp đỉnh, không bị quá xa để không bao giờ bị lộ rìa map!
+          const behindOffset = tangent.clone().multiplyScalar(-7.8);
+          const rightOffset = rightVec.clone().multiplyScalar(5.2);
+          const wideCamPos = carPos.clone().add(behindOffset).add(rightOffset).add(new THREE.Vector3(0, 3.2, 0));
+          camera.position.lerp(wideCamPos, 0.12);
 
-            const forwardLook = carPos.clone().add(tangent.clone().multiplyScalar(4.0)).add(new THREE.Vector3(0, 0.8, 0));
-            controls.target.lerp(forwardLook, 0.15);
-          } else {
-            const wideCamPos = new THREE.Vector3(0, 36, 42);
-            camera.position.lerp(wideCamPos, 0.05);
-            controls.target.lerp(new THREE.Vector3(0, 2.0, 0), 0.08);
-          }
+          const forwardLook = carPos.clone().add(tangent.clone().multiplyScalar(3.8)).add(new THREE.Vector3(0, 0.8, 0));
+          controls.target.lerp(forwardLook, 0.16);
         }
       }
 
@@ -398,8 +393,13 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
     if (!scene || !lights) return;
 
     if (timeOfDay === "day") {
-      scene.background = new THREE.Color(0xb5daf5);
-      scene.fog = new THREE.Fog(0xd4e9fa, 45, 170);
+      if (sceneMode === "mountain") {
+        scene.background = new THREE.Color(0xb0d5f2);
+        scene.fog = new THREE.Fog(0xb0d5f2, 30, 105);
+      } else {
+        scene.background = new THREE.Color(0xb5daf5);
+        scene.fog = new THREE.Fog(0xd4e9fa, 45, 170);
+      }
 
       lights.sun.intensity = 2.8;
       lights.sun.color.setHex(0xfffaec);
