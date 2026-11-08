@@ -200,14 +200,13 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
         const pt = heroCar.curve.getPointAt(heroCar.progress);
         const tangent = heroCar.curve.getTangentAt(heroCar.progress).normalize();
         const upVec = new THREE.Vector3(0, 1, 0);
-        // In Three.js with glTF coordinate mapping, crossVectors(upVec, tangent) points to the road's RIGHT lane (guardrail side)
-        const rightVec = new THREE.Vector3().crossVectors(upVec, tangent).normalize();
+        // crossVectors(tangent, upVec) points towards the outer canyon guardrail (RIGHT LANE)
+        const rightVec = new THREE.Vector3().crossVectors(tangent, upVec).normalize();
 
         // RIGHT-HAND TRAFFIC LANE OFFSET:
-        // Road width is 6.6m. Right lane center is +1.60m from yellow dashed centerline towards canyon guardrail!
-        const laneOffset = heroCar.curve === mountainCurve ? 1.60 : 0.0;
+        // Road width is 6.6m. Right lane center is +1.55m from yellow dashed centerline towards canyon guardrail!
+        const laneOffset = heroCar.curve === mountainCurve ? 1.55 : 0.0;
         const carPos = pt.clone().add(rightVec.clone().multiplyScalar(laneOffset));
-
         // Position car firmly in its lane
         heroCar.object.position.copy(carPos);
 
@@ -222,13 +221,13 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
 
         // CAMERA PERSPECTIVE:
         if (curCam === "close") {
-          // GÓC GẦN (CHASE CAM): Locked 7.5m behind car in its lane, 2.7m above road, looking 5.0m ahead
-          const behind = tangent.clone().multiplyScalar(-7.5);
-          const desiredCamPos = carPos.clone().add(behind).add(new THREE.Vector3(0, 2.7, 0));
-          camera.position.lerp(desiredCamPos, 0.12);
+          // GÓC GẦN (CHASE CAM): Tighter 4.6m chase distance to never clip into mountain wall, 1.95m above asphalt
+          const behind = tangent.clone().multiplyScalar(-4.6);
+          const desiredCamPos = carPos.clone().add(behind).add(new THREE.Vector3(0, 1.95, 0));
+          camera.position.lerp(desiredCamPos, 0.15);
 
-          const forwardLook = carPos.clone().add(tangent.clone().multiplyScalar(5.0)).add(new THREE.Vector3(0, 0.9, 0));
-          controls.target.lerp(forwardLook, 0.15);
+          const forwardLook = carPos.clone().add(tangent.clone().multiplyScalar(4.5)).add(new THREE.Vector3(0, 0.8, 0));
+          controls.target.lerp(forwardLook, 0.18);
         } else if (curCam === "wide") {
           // GÓC RỘNG (PANORAMIC OVERVIEW): High vantage point showing the whole mountain canyon, deck and road
           const wideCamPos = heroCar.curve === mountainCurve
@@ -358,12 +357,15 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
           const initPt = activeCurve.getPointAt(0.05);
           const initTangent = activeCurve.getTangentAt(0.05).normalize();
           const initUp = new THREE.Vector3(0, 1, 0);
-          const initRight = new THREE.Vector3().crossVectors(initUp, initTangent).normalize();
-          const initOffset = sceneMode === "mountain" ? 1.60 : 0.0;
+          const initRight = new THREE.Vector3().crossVectors(initTangent, initUp).normalize();
+          const initOffset = sceneMode === "mountain" ? 1.55 : 0.0;
           const initCarPos = initPt.clone().add(initRight.clone().multiplyScalar(initOffset));
+
+          heroCarObj.position.copy(initCarPos);
+          heroCarObj.lookAt(initCarPos.clone().add(initTangent));
           heroCarObj.rotateY(Math.PI);
-          const initCam = initCarPos.clone().add(initTangent.clone().multiplyScalar(-7.5)).add(new THREE.Vector3(0, 2.7, 0));
-          const initTarget = initCarPos.clone().add(initTangent.clone().multiplyScalar(5.0)).add(new THREE.Vector3(0, 0.9, 0));
+          const initCam = initCarPos.clone().add(initTangent.clone().multiplyScalar(-4.6)).add(new THREE.Vector3(0, 1.95, 0));
+          const initTarget = initCarPos.clone().add(initTangent.clone().multiplyScalar(4.5)).add(new THREE.Vector3(0, 0.8, 0));
 
           camera.position.copy(initCam);
           controls.target.copy(initTarget);
