@@ -200,11 +200,12 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
         const pt = heroCar.curve.getPointAt(heroCar.progress);
         const tangent = heroCar.curve.getTangentAt(heroCar.progress).normalize();
         const upVec = new THREE.Vector3(0, 1, 0);
-        const rightVec = new THREE.Vector3().crossVectors(tangent, upVec).normalize();
+        // In Three.js with glTF coordinate mapping, crossVectors(upVec, tangent) points to the road's RIGHT lane (guardrail side)
+        const rightVec = new THREE.Vector3().crossVectors(upVec, tangent).normalize();
 
         // RIGHT-HAND TRAFFIC LANE OFFSET:
-        // Road width is 6.6m. Right lane center is +1.65m from yellow dashed centerline!
-        const laneOffset = heroCar.curve === mountainCurve ? 1.65 : 0.0;
+        // Road width is 6.6m. Right lane center is +1.60m from yellow dashed centerline towards canyon guardrail!
+        const laneOffset = heroCar.curve === mountainCurve ? 1.60 : 0.0;
         const carPos = pt.clone().add(rightVec.clone().multiplyScalar(laneOffset));
 
         // Position car firmly in its lane
@@ -357,12 +358,9 @@ export const CityCanvas: React.FC<CityCanvasProps> = ({
           const initPt = activeCurve.getPointAt(0.05);
           const initTangent = activeCurve.getTangentAt(0.05).normalize();
           const initUp = new THREE.Vector3(0, 1, 0);
-          const initRight = new THREE.Vector3().crossVectors(initTangent, initUp).normalize();
-          const initOffset = sceneMode === "mountain" ? 1.65 : 0.0;
+          const initRight = new THREE.Vector3().crossVectors(initUp, initTangent).normalize();
+          const initOffset = sceneMode === "mountain" ? 1.60 : 0.0;
           const initCarPos = initPt.clone().add(initRight.clone().multiplyScalar(initOffset));
-
-          heroCarObj.position.copy(initCarPos);
-          heroCarObj.lookAt(initCarPos.clone().add(initTangent));
           heroCarObj.rotateY(Math.PI);
           const initCam = initCarPos.clone().add(initTangent.clone().multiplyScalar(-7.5)).add(new THREE.Vector3(0, 2.7, 0));
           const initTarget = initCarPos.clone().add(initTangent.clone().multiplyScalar(5.0)).add(new THREE.Vector3(0, 0.9, 0));

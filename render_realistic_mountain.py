@@ -398,99 +398,42 @@ add_box("SM_CanyonMist_Mid",  (110.0, 110.0, 0.25), (12.0, 0, -12.0), mat_canyon
 add_box("SM_CanyonMist_High", (90.0,  90.0,  0.25), (10.0, 0,  -6.0), mat_canyon_mist, col=col_canyon)
 
 # ==============================================================================
-# 6. SCENIC OBSERVATION DECK (ĐÀI VỌNG CẢNH VỰC SÂU)
+# 6. DISTANCE VALIDATION HELPER (PREVENT ANY CLIPPING WITH THE ROAD)
 # ==============================================================================
-# Positioned at index 50 along the road (sweeping outer canyon bend overlooking the whole abyss)
-deck_center = mtn_samples[50]
-deck_right  = rights[50]
-deck_tan    = tangents[50]
-
-# Terrace platform extending 4.8m outward beyond the right curb
-p_deck = deck_center + deck_right * 5.6 + Vector((0, 0, -0.05))
-add_box("SM_ObservationDeck_Floor", (5.8, 8.5, 0.4), p_deck, mat_deck_floor, col=col_deck)
-
-# Safety railing around the observation terrace
-p_rail_front = p_deck + deck_right * 2.8 + Vector((0, 0, 0.55))
-add_box("SM_DeckRailing_Front", (0.15, 8.5, 0.9), p_rail_front, mat_deck_rail, col=col_deck)
-p_rail_side1 = p_deck + deck_tan * 4.2 + Vector((0, 0, 0.55))
-add_box("SM_DeckRailing_Side1", (5.6, 0.15, 0.9), p_rail_side1, mat_deck_rail, col=col_deck)
-p_rail_side2 = p_deck - deck_tan * 4.2 + Vector((0, 0, 0.55))
-add_box("SM_DeckRailing_Side2", (5.6, 0.15, 0.9), p_rail_side2, mat_deck_rail, col=col_deck)
-
-# Panoramic Tourist Binoculars Stand on pedestal
-p_bino_base = p_deck + deck_right * 2.2 + Vector((0, 0, 0.6))
-add_cylinder("SM_Binoculars_Post", 0.08, 1.2, p_bino_base, mat_deck_rail, col=col_deck, vertices=8)
-add_box("SM_Binoculars_Head", (0.28, 0.45, 0.22), p_bino_base + Vector((0, 0, 0.65)), mat_metal_post, col=col_deck)
-
-# Wooden Rest Bench on the terrace
-add_box("SM_DeckBench_Seat", (0.55, 1.8, 0.1), p_deck - deck_right * 1.5 + Vector((0, 0, 0.45)), mat_wood_bench, col=col_deck)
-add_box("SM_DeckBench_Back", (0.1,  1.8, 0.5), p_deck - deck_right * 1.7 + Vector((0, 0, 0.75)), mat_wood_bench, col=col_deck)
-
-# Scenic Overlook Warning & Information Signboard
-p_sign = deck_center + deck_right * 4.2 - deck_tan * 4.8 + Vector((0, 0, 0.9))
-add_box("SM_ScenicSign_Board", (0.1, 1.4, 0.9), p_sign, mat_chev_yellow, col=col_deck)
-add_cylinder("SM_ScenicSign_Post", 0.06, 1.8, p_sign - Vector((0, 0, 0.45)), mat_metal_post, col=col_deck, vertices=6)
+def is_road_clear(x, y, min_dist=5.2):
+    min_dist_sq = min_dist * min_dist
+    for s in mtn_samples:
+        if (x - s.x)**2 + (y - s.y)**2 < min_dist_sq:
+            return False
+    return True
 
 # ==============================================================================
-# 7. CANYON ROCK SPIRES & JAGGED GEOLOGICAL MONOLITHS
+# 7. CANYON ROCK SPIRES & JAGGED GEOLOGICAL MONOLITHS (DEEP IN THE ABYSS)
 # ==============================================================================
-# Dramatic vertical rock towers jutting up from the canyon depth
 spires = [
-    ("Spire_Needle_1", 3.2, 18.0, ( 18.0, -18.0, -24.0), 6),
-    ("Spire_Needle_2", 4.0, 22.0, ( 30.0,  -5.0, -24.0), 7),
-    ("Spire_Needle_3", 3.5, 19.0, ( 32.0,  15.0, -24.0), 6),
-    ("Spire_Needle_4", 2.8, 16.0, ( 22.0,  30.0, -24.0), 5),
-    ("Spire_Needle_5", 4.5, 24.0, ( 42.0,   2.0, -24.0), 7),
-    ("Spire_Needle_6", 3.6, 17.0, ( 15.0, -32.0, -24.0), 6),
+    ("Spire_Needle_1", 3.2, 18.0, ( 18.0, -38.0, -24.0), 6),
+    ("Spire_Needle_2", 4.2, 22.0, ( 35.0,  -8.0, -24.0), 7),
+    ("Spire_Needle_3", 3.8, 20.0, ( 38.0,  18.0, -24.0), 6),
+    ("Spire_Needle_4", 3.0, 16.0, ( 22.0,  38.0, -24.0), 5),
+    ("Spire_Needle_5", 4.8, 24.0, ( 48.0,   2.0, -24.0), 7),
+    ("Spire_Needle_6", 3.6, 17.0, ( 28.0, -32.0, -24.0), 6),
 ]
 for name, rad, h, (sx, sy, sz), verts in spires:
-    add_cone(f"SM_{name}", rad, h, (sx, sy, sz + h/2), mat_dark_rock, col=col_canyon, vertices=verts)
-    # Adding moss and scree at the base
-    add_cone(f"SM_{name}_Base", rad * 1.5, h * 0.25, (sx, sy, sz + h * 0.12), mat_rock_cliff, col=col_canyon, vertices=verts)
+    if is_road_clear(sx, sy, min_dist=rad + 2.5):
+        add_cone(f"SM_{name}", rad, h, (sx, sy, sz + h/2), mat_dark_rock, col=col_canyon, vertices=verts)
+        add_cone(f"SM_{name}_Base", rad * 1.5, h * 0.25, (sx, sy, sz + h * 0.12), mat_rock_cliff, col=col_canyon, vertices=verts)
 
-# Boulder Clusters along the canyon slopes
+# Canyon Boulders safely placed on lower slopes and valley floor
 boulders = [
-    (( 12.0, -14.0, -5.5), (2.2, 1.8, 1.5)),
-    (( 16.0,  -8.0, -7.0), (1.8, 2.4, 1.4)),
-    (( 22.0,   8.0, -8.5), (2.5, 2.0, 1.8)),
-    (( 24.0,  22.0, -6.5), (2.0, 1.6, 1.3)),
-    ((  8.0,  28.0, -4.5), (1.6, 2.2, 1.2)),
-    (( -4.0,  24.0, -3.8), (1.9, 1.7, 1.5)),
+    (( 32.0, -14.0, -16.0), (3.2, 2.8, 2.5)),
+    (( 36.0,  -8.0, -18.0), (2.8, 3.4, 2.2)),
+    (( 42.0,   8.0, -20.0), (3.5, 3.0, 2.8)),
+    (( 34.0,  22.0, -18.0), (2.8, 2.6, 2.3)),
+    (( 28.0,  32.0, -17.0), (2.6, 3.2, 2.2)),
 ]
 for idx, (bloc, bsize) in enumerate(boulders):
-    add_box(f"SM_CanyonBoulder_{idx}", bsize, bloc, mat_dark_rock, col=col_canyon, rotation=(0.2, 0.4, idx * 0.7))
-
-# ==============================================================================
-# 8. HIGHWAY SAFETY INFRASTRUCTURE (CHEVRONS, KM MILESTONES, DELINEATORS)
-# ==============================================================================
-# Chevron Curve Warning Signs (>>>) along sharp right bends
-chevron_indices = [15, 25, 38, 55, 68, 75, 88, 105, 125, 145]
-for idx, c_idx in enumerate(chevron_indices):
-    pt = mtn_samples[c_idx]
-    r = rights[c_idx]
-    t = tangents[c_idx]
-    sign_loc = pt + r * 4.0 + Vector((0, 0, 1.1))
-    # Yellow warning panel
-    add_box(f"SM_Chevron_{idx}_Board", (0.08, 0.75, 0.75), sign_loc, mat_chev_yellow, col=col_props)
-    # Inner black arrow motif
-    add_box(f"SM_Chevron_{idx}_Arrow", (0.09, 0.25, 0.25), sign_loc, mat_chev_black, col=col_props, rotation=(0, 0.785, 0))
-    # Steel support post
-    add_cylinder(f"SM_Chevron_{idx}_Post", 0.05, 1.5, sign_loc - Vector((0, 0, 0.5)), mat_metal_post, col=col_props, vertices=6)
-
-# Km Milestones (Cột mốc lộ trình kiểu Touge)
-km_indices = [10, 60, 110, 160]
-for idx, k_idx in enumerate(km_indices):
-    pt = mtn_samples[k_idx]
-    r = rights[k_idx]
-    km_loc = pt + r * 3.85 + Vector((0, 0, 0.45))
-    # White concrete body
-    add_box(f"SM_KmMilestone_{idx}_Body", (0.35, 0.35, 0.65), km_loc, mat_km_white, col=col_props)
-    # Red semicircular cap
-    add_cylinder(f"SM_KmMilestone_{idx}_Cap", 0.175, 0.35, km_loc + Vector((0, 0, 0.38)), mat_km_red, col=col_props, vertices=8, rotation=(1.57, 0, 0))
-
-# ==============================================================================
-# 9. DENSE ALPINE PINE FORESTS (250+ TREES ACROSS ALL ELEVATIONS)
-# ==============================================================================
+    if is_road_clear(bloc[0], bloc[1], min_dist=4.5):
+        add_box(f"SM_CanyonBoulder_{idx}", bsize, bloc, mat_dark_rock, col=col_canyon, rotation=(0.2, 0.4, idx * 0.7))
 print("Generating 250+ Alpine Pine Trees...")
 # 1. Trees on the left mountain cliff ledges
 for i in range(4, num_pts, 4):
@@ -499,6 +442,8 @@ for i in range(4, num_pts, 4):
     px = curr.x - r.x * 6.5
     py = curr.y - r.y * 6.5
     pz = curr.z + 4.2
+    if not is_road_clear(px, py, min_dist=5.0):
+        continue
     add_cylinder(f"L_Trunk_{i}", 0.24, 1.8, (px, py, pz + 0.9), mat_pine_trunk, col=col_forest, vertices=6)
     for tier in range(3):
         r_tier = 1.4 - tier * 0.32
@@ -506,17 +451,17 @@ for i in range(4, num_pts, 4):
         z_tier = pz + 1.8 + tier * 0.95
         pine_mat = mat_pine_dark if tier % 2 == 0 else mat_pine_mid
         add_cone(f"L_PineF_{i}_{tier}", r_tier, h_tier, (px, py, z_tier), pine_mat, col=col_forest, vertices=6)
-
 # 2. Trees on the right canyon slope (Tops peeking over the guardrail into the abyss!)
 for i in range(2, num_pts, 3):
     curr = mtn_samples[i]
     r = rights[i]
-    # Peeking trees right along the slope at 7m to 12m right
-    dist_r = 7.5 + (i % 5) * 1.2
+    dist_r = 8.5 + (i % 5) * 1.5
     drop_z = 5.5 + (i % 4) * 1.5
     px = curr.x + r.x * dist_r
     py = curr.y + r.y * dist_r
     pz = curr.z - drop_z
+    if not is_road_clear(px, py, min_dist=5.2):
+        continue
     sc = 0.85 + (i % 3) * 0.25
     add_cylinder(f"R_Slope_Trunk_{i}", 0.28 * sc, 2.2 * sc, (px, py, pz + 1.1 * sc), mat_pine_trunk, col=col_forest, vertices=6)
     for tier in range(3):
@@ -525,13 +470,14 @@ for i in range(2, num_pts, 3):
         z_tier = pz + (2.2 + tier * 1.1) * sc
         pine_mat = mat_pine_dark if (i + tier) % 2 == 0 else mat_pine_mid
         add_cone(f"R_Slope_PineF_{i}_{tier}", r_tier, h_tier, (px, py, z_tier), pine_mat, col=col_forest, vertices=6)
-
 # 3. Dense groves deep in the canyon floor emerging through the mist (Z = -24m)
 random.seed(42)
-for idx in range(35):
+for idx in range(45):
     px = random.uniform(5.0, 55.0)
     py = random.uniform(-45.0, 45.0)
     pz = -24.0
+    if not is_road_clear(px, py, min_dist=5.2):
+        continue
     psc = random.uniform(1.8, 3.2)
     add_cylinder(f"Deep_Trunk_{idx}", 0.25 * psc, 2.2 * psc, (px, py, pz + 1.1 * psc), mat_pine_trunk, col=col_forest, vertices=6)
     for tier in range(3):
@@ -540,15 +486,15 @@ for idx in range(35):
         z_tier = pz + (2.2 + tier * 1.2) * psc
         pine_mat = mat_pine_dark if tier % 2 == 0 else mat_pine_mid
         add_cone(f"Deep_PineF_{idx}_{tier}", r_tier, h_tier, (px, py, z_tier), pine_mat, col=col_forest, vertices=6)
-
 # 4. Alpine Mountain Shrubs clinging to the canyon cliff edge
 for idx in range(25):
     s_idx = (idx * 7) % num_pts
     curr = mtn_samples[s_idx]
     r = rights[s_idx]
-    shrub_loc = curr + r * 4.6 - Vector((0, 0, 1.8 + (idx % 3) * 0.6))
+    shrub_loc = curr + r * 5.2 - Vector((0, 0, 2.2 + (idx % 3) * 0.6))
+    if not is_road_clear(shrub_loc.x, shrub_loc.y, min_dist=4.5):
+        continue
     add_cone(f"SM_Shrub_{idx}", 0.9, 0.8, shrub_loc, mat_moss_shrub, col=col_forest, vertices=5)
-
 # ==============================================================================
 # 10. MAJESTIC OPPOSITE CANYON WALL PEAKS
 # ==============================================================================
